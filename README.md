@@ -1,2 +1,8 @@
 # Rlox - rust implementation of Jlox
 This is a Rust implementation of the first part of the Crafting Interpreters book, where I attempted to recreate the Java interpreter using Rust. I paused my progress after completing the functions chapter. My project has a bug in recurison that I might fix later, but probably I will rewrite the project later on. Seeing that this was mostly for learning rust and setting up a project that's larger than an Advent of Code challange.
+
+# A fresh start.
+Some years ago, I tried to implement a Rust version of jlox and got stuck on recursion. Almost two years later, after returning from a vacation to Peru—where I visited my family-in-law and read part of Programming Rust by Jim Blandy, Jason Orendorff, and Leonora F. S. Tindall—I’ve picked it back up. That earlier failure never really sat well with me. Usually, when I abandon a project, it’s because I get bored. That time was different: I couldn’t find the bug, and after weeks of trying, I gave up and moved on to clox. That sent me down a whole side path of learning C and writing a few toy programs along the way. But now, I’m back.
+
+# Source
+[Crafting interpreters by Robert Nystrom](https://craftinginterpreters.com/)
