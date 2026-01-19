@@ -6,3 +6,20 @@ Some years ago, I tried to implement a Rust version of jlox and got stuck on rec
 
 # Source
 [Crafting interpreters by Robert Nystrom](https://craftinginterpreters.com/)
+
+# rLox
+
+read rlox_test.txt that's in the project root: 
+
+```bash
+
+crafting_interpreters_rust_verison/rlox on  master [!?] is 📦 v0.1.0 via 🦀 v1.92.0
+
+❯ cargo run -- rlox_test.txt
+   Compiling rlox v0.1.0 (/home/jan/Repos/crafting_interpreters_rust_verison/rlox)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.14s
+     Running `target/debug/rlox rlox_test.txt`
+
+run file "rlox_test.txt"
+contents: "var a = 1;\n"
+```
