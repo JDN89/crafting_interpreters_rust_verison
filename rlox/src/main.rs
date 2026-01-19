@@ -5,6 +5,12 @@ use std::path::Path;
 use anyhow::Context;
 use anyhow::Result;
 
+// Custom error reporting helper
+// fn error(line: usize, message: &str) -> anyhow::Error {
+//     anyhow::anyhow!("[line {}] Error: {}", line, message)
+// }
+
+            // return Err(error(i + 1, "Line cannot be empty"));
 
 fn run_file<P>(path:P) -> Result<()> where P: AsRef <Path> {
     let contents = fs::read_to_string(path)
