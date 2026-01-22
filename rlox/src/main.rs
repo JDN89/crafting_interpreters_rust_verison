@@ -7,6 +7,10 @@ use anyhow::Context;
 use anyhow::Result;
 use anyhow::bail;
 
+use crate::frontend::scanner;
+
+mod frontend;
+
 // Custom error reporting helper
 // fn error(line: usize, message: &str) -> anyhow::Error {
 //     anyhow::anyhow!("[line {}] Error: {}", line, message)
@@ -40,6 +44,7 @@ fn run_prompt() -> Result<()> {
 
 fn run (source: &str) -> Result<()> {
     println!("the source is : {:?}",source);
+    scanner::scan(source);
     Ok(())
 }
 
