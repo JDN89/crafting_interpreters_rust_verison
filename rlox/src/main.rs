@@ -7,7 +7,7 @@ use anyhow::Context;
 use anyhow::Result;
 use anyhow::bail;
 
-use crate::frontend::scanner;
+use crate::frontend::lexer;
 
 mod frontend;
 
@@ -44,7 +44,7 @@ fn run_prompt() -> Result<()> {
 
 fn run (source: &str) -> Result<()> {
     println!("the source is : {:?}",source);
-    scanner::scan(source);
+    lexer::scan(source);
     Ok(())
 }
 
