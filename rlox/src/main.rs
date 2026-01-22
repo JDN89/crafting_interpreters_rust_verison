@@ -15,9 +15,10 @@ use anyhow::bail;
             // return Err(error(i + 1, "Line cannot be empty"));
 
 fn run_file<P>(path:P) -> Result<()> where P: AsRef <Path> {
+    println!("run file");
     let contents = fs::read_to_string(path)
         .context("Should have been able to read the file")?;
-    println!("contents: {:?}",contents);
+    run(&contents)?;
     Ok(())
 }
 
