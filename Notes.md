@@ -1,4 +1,9 @@
+# TODO
+- [ ] Token bevat Object literal; geen idee waarvoor dit zal dienen, maar bij mij is dit voorlopig een literal: string
+
+
 # Nice to have
+
 - [ ] decend error reporter. See chapter 4.1.1
 
 # Notes
