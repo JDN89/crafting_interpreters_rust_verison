@@ -36,7 +36,9 @@ impl<'a> Lexer<'a> {
     }
 
     fn add_token(&mut self, ttype: TokenType, literal: Option<String>) {
-        let text = &self.source[self.start..=self.current];
+        // NOTE: range exclusive omdat current al advanced is naar de volgende positie, door
+        // self.advance()
+        let text = &self.source[self.start..self.current];
         let token = Token::new(ttype, text.to_string(), literal, self.line);
         self.tokens.push(token);
     }
