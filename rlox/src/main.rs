@@ -13,7 +13,7 @@ use crate::frontend::lexer::Lexer;
 mod frontend;
 
 // Custom error reporting helper
-// fn error(line: usize, message: &str) -> anyhow::Error {
+// fn error(jline: usize, message: &strj) -> anyhow::Error {
 //     anyhow::anyhow!("[line {}] Error: {}", line, message)
 // }
 
@@ -47,8 +47,8 @@ fn run_prompt() -> Result<()> {
 
 fn run(source: &str) -> Result<()> {
     println!("the source is : {:?}", source);
-    let lexer = Lexer::new(source);
-    lexer.scan();
+    let mut lexer = Lexer::new(source);
+    let _ = lexer.scan_tokens();
 
     // lexer::scan(source);
     Ok(())
