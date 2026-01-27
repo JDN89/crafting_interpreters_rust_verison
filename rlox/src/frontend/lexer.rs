@@ -43,11 +43,45 @@ impl<'a> Lexer<'a> {
         self.tokens.push(token);
     }
 
-    //     anyhow::anyhow!("[line {}] Error: {}", line, message)
+    fn match_token(&mut self, expected: char) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+        if self
+            .source
+            .chars()
+            .nth(self.current)
+            .expect("Error at match_token whilst indexing into self.source")
+            != expected
+        {
+            return false;
+        }
+        self.current += 1;
+        true
+    }
+
     fn scan_token(&mut self) -> Result<()> {
+        // This call to advance also consumes the default error line
         let c = self.advance();
         match c {
             '(' => self.add_token(TokenType::LeftParen, None),
+            ')' => self.add_token(TokenType::RightParen, None),
+            '{' => self.add_token(TokenType::LeftBrace, None),
+            '}' => self.add_token(TokenType::RightBrace, None),
+            ',' => self.add_token(TokenType::Comma, None),
+            '.' => self.add_token(TokenType::Dot, None),
+            '-' => self.add_token(TokenType::Minus, None),
+            '+' => self.add_token(TokenType::Plus, None),
+            ';' => self.add_token(TokenType::Semicolon, None),
+            '*' => self.add_token(TokenType::Star, None),
+            '!' => {
+                let token_matches_equal = self.match_token('=');
+                if token_matches_equal {
+                    self.add_token(TokenType::BangEqual, None);
+                } else {
+                    self.add_token(TokenType::Bang, None);
+                }
+            }
             _ => {
                 return Err(anyhow!("[line {}] Error : Unexpected character", self.line));
             }
@@ -128,7 +162,15 @@ mod tests {
             ("(", TokenType::LeftParen),
             (")", TokenType::RightParen),
             ("{", TokenType::LeftBrace),
-            // ... add more as you implement them
+            ("}", TokenType::RightBrace),
+            (",", TokenType::Comma),
+            (".", TokenType::Dot),
+            ("-", TokenType::Minus),
+            ("+", TokenType::Plus),
+            (";", TokenType::Semicolon),
+            ("*", TokenType::Star),
+            ("!=", TokenType::BangEqual),
+            ("!", TokenType::Bang),
         ];
 
         for (input, expected_type) in test_cases {
