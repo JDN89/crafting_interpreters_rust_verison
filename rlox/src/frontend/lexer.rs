@@ -56,12 +56,23 @@ impl<'a> Lexer<'a> {
         {
             return false;
         }
+        // NOTE We only conly consume the current character when it matches with the expected token
         self.current += 1;
         true
     }
 
+    fn peek(&self) -> char {
+        if self.is_at_end() {
+            return '\0';
+        }
+        self.source
+            .chars()
+            .nth(self.current)
+            .expect("Error in lexer.peek()")
+    }
+
     fn scan_token(&mut self) -> Result<()> {
-        // This call to advance also consumes the default error line
+        // NOTE This call to advance also consumes the default error line
         let c = self.advance();
         match c {
             '(' => self.add_token(TokenType::LeftParen, None),
@@ -79,9 +90,47 @@ impl<'a> Lexer<'a> {
                 if token_matches_equal {
                     self.add_token(TokenType::BangEqual, None);
                 } else {
+                    // NOTE when it doesn't match current doesn't advance
                     self.add_token(TokenType::Bang, None);
                 }
             }
+            '=' => {
+                let token_matches_equal = self.match_token('=');
+                if token_matches_equal {
+                    self.add_token(TokenType::EqualEqual, None);
+                } else {
+                    self.add_token(TokenType::Equal, None);
+                }
+            }
+            '<' => {
+                let token_matches_equal = self.match_token('=');
+                if token_matches_equal {
+                    self.add_token(TokenType::LessEqual, None);
+                } else {
+                    self.add_token(TokenType::Less, None);
+                }
+            }
+            '>' => {
+                let token_matches_equal = self.match_token('=');
+                if token_matches_equal {
+                    self.add_token(TokenType::GreaterEqual, None);
+                } else {
+                    self.add_token(TokenType::Greater, None);
+                }
+            }
+            '/' => {
+                let token_matches_slash = self.match_token('/');
+                if token_matches_slash {
+                    // NOTE a comment goes until the end of the line
+                    while self.peek() != '\n' && !self.is_at_end() {
+                        self.advance();
+                    }
+                } else {
+                    self.add_token(TokenType::Slash, None);
+                }
+            }
+            ' ' | '\r' | '\t' => (),
+            '\n' => self.line += 1,
             _ => {
                 return Err(anyhow!("[line {}] Error : Unexpected character", self.line));
             }
@@ -178,5 +227,14 @@ mod tests {
             let tokens = lexer.scan_tokens().unwrap();
             assert_eq!(tokens[0].ttype, expected_type);
         }
+    }
+
+    #[test]
+    fn test_comment() {
+        let input = "// This is a comment";
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.scan_tokens().unwrap();
+        assert!(tokens.len() == 1);
+        assert_eq!(tokens[0].ttype, TokenType::Eof);
     }
 }
