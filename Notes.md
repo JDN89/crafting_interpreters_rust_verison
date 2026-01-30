@@ -26,6 +26,11 @@ Als je alles in één keer zou doen, moest de **parser** constant zelf gaan chec
 
 ### 30-01-2026
 
+> We store both the lexeme and the literal value in a token.
+> The lexeme is the exact source-code representation of the token, while the literal is the parsed value represented by that lexeme.
+> For example, for a number token with source text "123", the lexeme is "123" (a string slice), and the literal value is 123 (a number).
+> This is useful during parsing and interpreting: we keep the lexeme for error messages and source context, and the literal value so the interpreter doesn’t need to re-parse the token at runtime.
+
 Zonet besloten om &str te gebruiken voor de lexeme. De source code zal toch blijven bestaan totaan het einde van ons interpreter en indien we de lexeme moeten bezitten en aanpassen bestaan hier methodes voor. Momenteel is een string slice voldoende en efficienter. Wel irritant om overal lifetimes aan toe te voegen. Zeker als het later blijkt dat ik de slices niet nodig had, of een verkeerde keuze was.
 
 ### xx-01-2026
