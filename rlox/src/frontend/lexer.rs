@@ -75,8 +75,8 @@ impl<'a> Lexer<'a> {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
                 self.line += 1;
-                self.advance();
             }
+            self.advance();
         }
 
         if self.is_at_end() {
@@ -270,5 +270,26 @@ mod tests {
         assert_eq!(tokens[0].ttype, TokenType::LeftParen);
         assert_eq!(tokens[1].ttype, TokenType::Eof);
         assert_eq!(lexer.line, 3);
+    }
+
+    #[test]
+    fn test_string() {
+        let input = "\" yolo\"";
+        let input_start = 1;
+        let input_end = input.len() - 1;
+
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.scan_tokens().unwrap();
+        assert!(tokens.len() == 2);
+        assert_eq!(tokens[0].ttype, TokenType::String);
+        match tokens[0].literal {
+            Some(Literal::Str(s)) => {
+                assert_eq!(s, &input[input_start..input_end]);
+                assert_eq!(s, " yolo");
+                assert_eq!(tokens[0].lexeme, "\" yolo\"");
+            }
+            _ => panic!("Expected string literal"),
+        }
+        assert_eq!(tokens[1].ttype, TokenType::Eof);
     }
 }
