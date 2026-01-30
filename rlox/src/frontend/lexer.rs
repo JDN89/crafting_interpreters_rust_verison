@@ -237,4 +237,17 @@ mod tests {
         assert!(tokens.len() == 1);
         assert_eq!(tokens[0].ttype, TokenType::Eof);
     }
+
+    #[test]
+    fn test_whitespaces_and_return() {
+        let input = "    
+
+          (";
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.scan_tokens().unwrap();
+        assert!(tokens.len() == 2);
+        assert_eq!(tokens[0].ttype, TokenType::LeftParen);
+        assert_eq!(tokens[1].ttype, TokenType::Eof);
+        assert_eq!(lexer.line, 3);
+    }
 }
