@@ -8,8 +8,14 @@ pub enum Literal<'a> {
     Integer(i32),
 }
 
-// TODO: Does the Token need to be the owner of the Lexeme, or can we point to the source code?
-// lexeme: &str
+// TODO bekijk of we toch echt zowel de lexeme als de literal nodig? Hebben we ze uberhoupt nodig?
+// Kan ik niet gewoon hun positie in de source code meegeven en dan ze interpreteren (op basis van
+// token type) of subslicen indien ik het relevante source code gedeelete nodig heb? Ik denk dat ik
+// eens een talk van Zig had gezien of Data driven development waar Andrew Kelly sprak over het
+// versnellen van de compiler en het reduceren van de token code.
+// source: Andrew Kelley: A Practical Guide to Applying Data Oriented Design (DoD)
+// https://www.youtube.com/watch?v=IroPQ150F6c
+// Bekijk na implementeren van de interpreter en zie of ik het sneller kan maken!
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token<'a> {
     pub ttype: TokenType,

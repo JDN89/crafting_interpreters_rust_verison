@@ -26,6 +26,9 @@ Als je alles in één keer zou doen, moest de **parser** constant zelf gaan chec
 
 ### 30-01-2026
 
+> **TODO** bekijk of we toch echt zowel de lexeme als de literal nodig? Hebben we ze uberhoupt nodig? Kan ik niet gewoon hun positie in de source code meegeven en dan ze interpreteren (op basis van token type) of subslicen indien ik het relevante source code gedeelete nodig heb? Ik denk dat ik eens een talk van Zig had gezien of Data driven development waar Andrew Kelly sprak over het versnellen van de compiler en het reduceren van de token code. source: Andrew Kelley: A Practical Guide to Applying Data Oriented Design (DoD) https://www.youtube.com/watch?v=IroPQ150F6c
+> Bekijk na implementeren van de interpreter en zie of ik het sneller kan maken!
+
 > We store both the lexeme and the literal value in a token.
 > The lexeme is the exact source-code representation of the token, while the literal is the parsed value represented by that lexeme.
 > For example, for a number token with source text "123", the lexeme is "123" (a string slice), and the literal value is 123 (a number).
