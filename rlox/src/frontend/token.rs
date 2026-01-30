@@ -1,6 +1,7 @@
 use core::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
 pub enum Literal<'a> {
     Str(&'a str),
     Boolean(bool),
@@ -12,13 +13,18 @@ pub enum Literal<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token<'a> {
     pub ttype: TokenType,
-    pub lexeme: String,
+    pub lexeme: &'a str,
     pub literal: Option<Literal<'a>>,
     pub line: u32,
 }
 
 impl Token<'_> {
-    pub fn new(ttype: TokenType, lexeme: String, literal: Option<Literal>, line: u32) -> Token {
+    pub fn new<'a>(
+        ttype: TokenType,
+        lexeme: &'a str,
+        literal: Option<Literal<'a>>,
+        line: u32,
+    ) -> Token<'a> {
         Token {
             ttype,
             lexeme,

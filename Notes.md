@@ -24,6 +24,12 @@ Als je alles in één keer zou doen, moest de **parser** constant zelf gaan chec
 
 ## Chapter 4 Scanning
 
+### 30-01-2026
+
+Zonet besloten om &str te gebruiken voor de lexeme. De source code zal toch blijven bestaan totaan het einde van ons interpreter en indien we de lexeme moeten bezitten en aanpassen bestaan hier methodes voor. Momenteel is een string slice voldoende en efficienter. Wel irritant om overal lifetimes aan toe te voegen. Zeker als het later blijkt dat ik de slices niet nodig had, of een verkeerde keuze was.
+
+### xx-01-2026
+
 I am not going to implement the [error reporting](https://craftinginterpreters.com/scanning.html#error-handling) in . I can just as easy use anyhow with_context.
 
 Ideally, we would have an actual abstraction, some kind of “ErrorReporter” interface that gets passed to the scanner and parser so that we can swap out different reporting strategies. For our simple interpreter here, I didn’t do that, but I did at least move the code for error reporting into a different class.

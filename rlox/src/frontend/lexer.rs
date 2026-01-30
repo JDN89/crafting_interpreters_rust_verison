@@ -39,7 +39,7 @@ impl<'a> Lexer<'a> {
         // NOTE: range exclusive omdat current al advanced is naar de volgende positie, door
         // self.advance()
         let text = &self.source[self.start..self.current];
-        let token = Token::new(ttype, text.to_string(), literal, self.line);
+        let token = Token::new(ttype, text, literal, self.line);
         self.tokens.push(token);
     }
 
@@ -165,9 +165,8 @@ impl<'a> Lexer<'a> {
             self.start = self.current;
             self.scan_token()?
         }
-        // TODO: check what is faster "".to_string() or Vec::new()
         self.tokens
-            .push(Token::new(TokenType::Eof, "".to_string(), None, self.line));
+            .push(Token::new(TokenType::Eof, "", None, self.line));
 
         Ok(&self.tokens)
     }
