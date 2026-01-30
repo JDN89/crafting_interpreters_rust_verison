@@ -1,17 +1,24 @@
 use core::fmt;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Literal<'a> {
+    Str(&'a str),
+    Boolean(bool),
+    Integer(i32),
+}
+
 // TODO: Does the Token need to be the owner of the Lexeme, or can we point to the source code?
 // lexeme: &str
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Token {
+pub struct Token<'a> {
     pub ttype: TokenType,
     pub lexeme: String,
-    pub literal: Option<String>,
+    pub literal: Option<Literal<'a>>,
     pub line: u32,
 }
 
-impl Token {
-    pub fn new(ttype: TokenType, lexeme: String, literal: Option<String>, line: u32) -> Token {
+impl Token<'_> {
+    pub fn new(ttype: TokenType, lexeme: String, literal: Option<Literal>, line: u32) -> Token {
         Token {
             ttype,
             lexeme,
@@ -22,7 +29,7 @@ impl Token {
 }
 
 // Optional: implement Display for nicer printing
-impl fmt::Display for Token {
+impl fmt::Display for Token<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -33,6 +40,7 @@ impl fmt::Display for Token {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,

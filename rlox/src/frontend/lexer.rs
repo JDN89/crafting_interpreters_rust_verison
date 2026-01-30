@@ -1,10 +1,10 @@
 use anyhow::*;
 
-use crate::frontend::token::{Token, TokenType};
+use crate::frontend::token::{Literal, Token, TokenType};
 
 pub struct Lexer<'a> {
     source: &'a str,
-    tokens: Vec<Token>,
+    tokens: Vec<Token<'a>>,
     start: usize,
     current: usize,
     line: u32,
@@ -35,7 +35,7 @@ impl<'a> Lexer<'a> {
         c
     }
 
-    fn add_token(&mut self, ttype: TokenType, literal: Option<String>) {
+    fn add_token(&mut self, ttype: TokenType, literal: Option<Literal<'a>>) {
         // NOTE: range exclusive omdat current al advanced is naar de volgende positie, door
         // self.advance()
         let text = &self.source[self.start..self.current];
@@ -69,6 +69,27 @@ impl<'a> Lexer<'a> {
             .chars()
             .nth(self.current)
             .expect("Error in lexer.peek()")
+    }
+
+    fn string(&mut self) -> Result<()> {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line += 1;
+                self.advance();
+            }
+        }
+
+        if self.is_at_end() {
+            return Err(anyhow!("[line {}] Error : Unterminated string", self.line));
+        }
+
+        // NOTE consume the enclosing "
+        self.advance();
+
+        let value = &self.source[self.start + 1..self.current - 1];
+        self.add_token(TokenType::String, Some(Literal::Str(value)));
+
+        Ok(())
     }
 
     fn scan_token(&mut self) -> Result<()> {
@@ -131,6 +152,7 @@ impl<'a> Lexer<'a> {
             }
             ' ' | '\r' | '\t' => (),
             '\n' => self.line += 1,
+            '"' => self.string()?,
             _ => {
                 return Err(anyhow!("[line {}] Error : Unexpected character", self.line));
             }
@@ -138,7 +160,7 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
-    pub fn scan_tokens(&mut self) -> Result<&Vec<Token>> {
+    pub fn scan_tokens(&mut self) -> Result<&Vec<Token<'_>>> {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token()?
