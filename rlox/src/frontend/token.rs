@@ -1,11 +1,11 @@
 use core::fmt;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
 pub enum Literal<'a> {
     Str(&'a str),
     Boolean(bool),
-    Integer(i32),
+    Integer(f64),
 }
 
 // TODO bekijk of we toch echt zowel de lexeme als de literal nodig? Hebben we ze uberhoupt nodig?
@@ -16,7 +16,7 @@ pub enum Literal<'a> {
 // source: Andrew Kelley: A Practical Guide to Applying Data Oriented Design (DoD)
 // https://www.youtube.com/watch?v=IroPQ150F6c
 // Bekijk na implementeren van de interpreter en zie of ik het sneller kan maken!
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token<'a> {
     pub ttype: TokenType,
     pub lexeme: &'a str,
@@ -51,7 +51,7 @@ impl fmt::Display for Token<'_> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[allow(dead_code)]
 pub enum TokenType {
     // Single-character tokens.

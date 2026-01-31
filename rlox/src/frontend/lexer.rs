@@ -71,6 +71,17 @@ impl<'a> Lexer<'a> {
             .expect("Error in lexer.peek()")
     }
 
+    fn peek_next(&self) -> char {
+        if self.current + 1 >= self.source.len() {
+            return '\0';
+        }
+        return self
+            .source
+            .chars()
+            .nth(self.current + 1)
+            .expect("Error in Lexer::peek_next()");
+    }
+
     fn string(&mut self) -> Result<()> {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
@@ -90,6 +101,27 @@ impl<'a> Lexer<'a> {
         self.add_token(TokenType::String, Some(Literal::Str(value)));
 
         Ok(())
+    }
+
+    pub fn is_digit(&self, c: char) -> bool {
+        return c >= '0' && c <= '9';
+    }
+
+    // NOTE The litereal String I borrow, beucase it reflects the source code value. With number we convert the source code to a number so here it doesn't make sense to borrow.
+    pub fn number(&mut self) {
+        while self.is_digit(self.peek()) {
+            self.advance();
+        }
+        if self.peek() == '.' && self.is_digit(self.peek_next()) {
+            self.advance();
+            while self.is_digit(self.peek()) {
+                self.advance();
+            }
+        }
+        let number = self.source[self.start..self.current]
+            .parse::<f64>()
+            .expect("Error parsing str to number in lexer:: number()");
+        self.add_token(TokenType::Number, Some(Literal::Integer(number.to_owned())));
     }
 
     fn scan_token(&mut self) -> Result<()> {
@@ -154,7 +186,11 @@ impl<'a> Lexer<'a> {
             '\n' => self.line += 1,
             '"' => self.string()?,
             _ => {
-                return Err(anyhow!("[line {}] Error : Unexpected character", self.line));
+                if self.is_digit(c) {
+                    self.number();
+                } else {
+                    return Err(anyhow!("[line {}] Error : Unexpected character", self.line));
+                }
             }
         }
         Ok(())
@@ -174,6 +210,8 @@ impl<'a> Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::frontend::lexer;
+
     use super::*;
 
     #[test]
@@ -291,5 +329,22 @@ mod tests {
             _ => panic!("Expected string literal"),
         }
         assert_eq!(tokens[1].ttype, TokenType::Eof);
+    }
+
+    #[test]
+    fn test_number() {
+        let input = "123.45";
+        let expected: f64 = 123.45;
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.scan_tokens().unwrap();
+        assert!(tokens.len() == 2);
+        assert_eq!(tokens[0].ttype, TokenType::Number);
+        match tokens[0].literal {
+            Some(Literal::Integer(number)) => {
+                assert_eq!(number, expected);
+                assert_eq!(tokens[0].lexeme, "123.45");
+            }
+            _ => panic!("Expected number Literal"),
+        }
     }
 }
