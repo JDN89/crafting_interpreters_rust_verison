@@ -1,6 +1,29 @@
 use anyhow::*;
 
+use phf::phf_map;
+
 use crate::frontend::token::{Literal, Token, TokenType};
+
+// [source code phf](https://docs.rs/phf/latest/phf/)
+
+static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
+    "and" => TokenType::And,
+    "class" => TokenType::Class,
+    "else" => TokenType::Else,
+    "false" => TokenType::False,
+    "for" => TokenType::For,
+    "fun" => TokenType::Fun,
+    "if" => TokenType::If,
+    "nil" => TokenType::Nil,
+    "or" => TokenType::Or,
+    "print" => TokenType::Print,
+    "return" => TokenType::Return,
+    "super" => TokenType::Super,
+    "this" => TokenType::This,
+    "true" => TokenType::True,
+    "var" => TokenType::Var,
+    "while" => TokenType::While,
+};
 
 pub struct Lexer<'a> {
     source: &'a str,
@@ -43,7 +66,7 @@ impl<'a> Lexer<'a> {
         self.tokens.push(token);
     }
 
-    fn match_token(&mut self, expected: char) -> bool {
+    fn match_char(&mut self, expected: char) -> bool {
         if self.is_at_end() {
             return false;
         }
@@ -75,11 +98,10 @@ impl<'a> Lexer<'a> {
         if self.current + 1 >= self.source.len() {
             return '\0';
         }
-        return self
-            .source
+        self.source
             .chars()
             .nth(self.current + 1)
-            .expect("Error in Lexer::peek_next()");
+            .expect("Error in Lexer::peek_next()")
     }
 
     fn string(&mut self) -> Result<()> {
@@ -104,7 +126,7 @@ impl<'a> Lexer<'a> {
     }
 
     pub fn is_digit(&self, c: char) -> bool {
-        return c >= '0' && c <= '9';
+        c.is_ascii_digit()
     }
 
     // NOTE The litereal String I borrow, beucase it reflects the source code value. With number we convert the source code to a number so here it doesn't make sense to borrow.
@@ -124,6 +146,26 @@ impl<'a> Lexer<'a> {
         self.add_token(TokenType::Number, Some(Literal::Integer(number.to_owned())));
     }
 
+    fn is_alpha(&self, c: char) -> bool {
+        c.is_ascii_lowercase() || c.is_ascii_uppercase() || c == '_'
+    }
+
+    fn is_alpha_numberic(&self, c: char) -> bool {
+        self.is_digit(c) || self.is_alpha(c)
+    }
+
+    fn identifier(&mut self) {
+        while self.is_alpha_numberic(self.peek()) {
+            self.advance();
+        }
+        let text = &self.source[self.start..self.current];
+        let ttype = KEYWORDS.get(text);
+        match ttype {
+            Some(value) => self.add_token(*value, None),
+            None => self.add_token(TokenType::Identifier, None),
+        }
+    }
+
     fn scan_token(&mut self) -> Result<()> {
         // NOTE This call to advance also consumes the default error line
         let c = self.advance();
@@ -139,7 +181,7 @@ impl<'a> Lexer<'a> {
             ';' => self.add_token(TokenType::Semicolon, None),
             '*' => self.add_token(TokenType::Star, None),
             '!' => {
-                let token_matches_equal = self.match_token('=');
+                let token_matches_equal = self.match_char('=');
                 if token_matches_equal {
                     self.add_token(TokenType::BangEqual, None);
                 } else {
@@ -148,7 +190,7 @@ impl<'a> Lexer<'a> {
                 }
             }
             '=' => {
-                let token_matches_equal = self.match_token('=');
+                let token_matches_equal = self.match_char('=');
                 if token_matches_equal {
                     self.add_token(TokenType::EqualEqual, None);
                 } else {
@@ -156,7 +198,7 @@ impl<'a> Lexer<'a> {
                 }
             }
             '<' => {
-                let token_matches_equal = self.match_token('=');
+                let token_matches_equal = self.match_char('=');
                 if token_matches_equal {
                     self.add_token(TokenType::LessEqual, None);
                 } else {
@@ -164,7 +206,7 @@ impl<'a> Lexer<'a> {
                 }
             }
             '>' => {
-                let token_matches_equal = self.match_token('=');
+                let token_matches_equal = self.match_char('=');
                 if token_matches_equal {
                     self.add_token(TokenType::GreaterEqual, None);
                 } else {
@@ -172,7 +214,7 @@ impl<'a> Lexer<'a> {
                 }
             }
             '/' => {
-                let token_matches_slash = self.match_token('/');
+                let token_matches_slash = self.match_char('/');
                 if token_matches_slash {
                     // NOTE a comment goes until the end of the line
                     while self.peek() != '\n' && !self.is_at_end() {
@@ -188,6 +230,8 @@ impl<'a> Lexer<'a> {
             _ => {
                 if self.is_digit(c) {
                     self.number();
+                } else if self.is_alpha(c) {
+                    self.identifier();
                 } else {
                     return Err(anyhow!("[line {}] Error : Unexpected character", self.line));
                 }
@@ -210,8 +254,6 @@ impl<'a> Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::frontend::lexer;
-
     use super::*;
 
     #[test]
@@ -248,7 +290,7 @@ mod tests {
 
     #[test]
     fn test_unexpected_character_error() {
-        let mut lexer = Lexer::new("x");
+        let mut lexer = Lexer::new("$");
         let result = lexer.scan_tokens();
 
         assert!(result.is_err());
@@ -328,6 +370,17 @@ mod tests {
             }
             _ => panic!("Expected string literal"),
         }
+        assert_eq!(tokens[1].ttype, TokenType::Eof);
+    }
+
+    #[test]
+    fn test_keyword() {
+        let input = "print";
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.scan_tokens().unwrap();
+        assert!(tokens.len() == 2);
+        assert_eq!(tokens[0].ttype, TokenType::Print);
+        assert_eq!(tokens[0].lexeme, "print");
         assert_eq!(tokens[1].ttype, TokenType::Eof);
     }
 

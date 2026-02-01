@@ -1,6 +1,7 @@
 # TODO
 
-- [ ] Token bevat Object literal; geen idee waarvoor dit zal dienen, maar bij mij is dit voorlopig een literal: string
+- [ ] write test for identifier vs keyword lexing
+- [ ] look up detailed difference between static and const keyword. Explanation in programming Rust book is to limited. Vooral wanneer gebruik je static <> const?
 
 ## Nice to have
 
@@ -29,6 +30,8 @@ Als je alles in één keer zou doen, moest de **parser** constant zelf gaan chec
 ## Chapter 4 Scanning
 
 ### 01-02-2026
+
+forgot difference tussen static en const.
 
 Recent ontdekt dat je ook **Arena Allocators** kan gebruiken in Rust. Ik kende het concept al door Ginger Bill, en Ryan Fleury, maar ik had er nog niet aan gedacht om dit ook in Rust te gebruiken. Wat zou het verschil zijn met **RC** en **Refcell** wij managen het geheugen, en deoalocaten wanneer we willen. Gebruikt RC een malloc under te hood? Onderzoek dit in detail. [bumpalo arena impl in Rust](https://docs.rs/bumpalo/latest/bumpalo/).
 De tokens, en AST zullen allemaal een soorgelijke lifetime hebben, dus hier lijkt een arena Alocator perfect, want ik kan ze ook allemaal tegelijkertijd deoalocaten. RC en Refcell brengen volgens mij buiten de allocatie per object veel overhead, omdat ze de pointers moeten tracken, plus indien allocatie per object, waar belanden ze in memory? Liggen ze vlak naast elkaar of verspreid, met cache misses als mogelijks gevolg.
