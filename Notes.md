@@ -2,11 +2,15 @@
 
 - [ ] Token bevat Object literal; geen idee waarvoor dit zal dienen, maar bij mij is dit voorlopig een literal: string
 
-# Nice to have
+## Nice to have
 
 - [ ] decend error reporter. See chapter 4.1.1
+- [ ] Arana alloc
+- [ ] reduce memory footprint Tokens
+  - [ ] research memory profiling tools in Rust. What is there?
+- [ ] Struct of Arrays instead of Array of struct
 
-# Notes
+## Notes
 
 Een **lexeme** is gewoon een groep karakters uit de source code die in de context van de taal iets betekenen, maar op zichzelf is het maar een stukje tekst.
 
@@ -23,6 +27,15 @@ Daarna kan de **parser** die tokens gebruiken om de structuur van het programma 
 Als je alles in één keer zou doen, moest de **parser** constant zelf gaan checken: oké, dit is een var, daarna een identifier, dan een =, dan een literal… Dat wordt heel snel complex. Door eerst te scannen en tokens te maken, kan de parser zich gewoon richten op de volgorde en structuur, zonder per karakter te hoeven nadenken.
 
 ## Chapter 4 Scanning
+
+### 01-02-2026
+
+Recent ontdekt dat je ook **Arena Allocators** kan gebruiken in Rust. Ik kende het concept al door Ginger Bill, en Ryan Fleury, maar ik had er nog niet aan gedacht om dit ook in Rust te gebruiken. Wat zou het verschil zijn met **RC** en **Refcell** wij managen het geheugen, en deoalocaten wanneer we willen. Gebruikt RC een malloc under te hood? Onderzoek dit in detail. [bumpalo arena impl in Rust](https://docs.rs/bumpalo/latest/bumpalo/).
+De tokens, en AST zullen allemaal een soorgelijke lifetime hebben, dus hier lijkt een arena Alocator perfect, want ik kan ze ook allemaal tegelijkertijd deoalocaten. RC en Refcell brengen volgens mij buiten de allocatie per object veel overhead, omdat ze de pointers moeten tracken, plus indien allocatie per object, waar belanden ze in memory? Liggen ze vlak naast elkaar of verspreid, met cache misses als mogelijks gevolg.
+
+### 31-01-2026
+
+Wat misschien ook interessent is is om de optimalisatie video van Jon Gjengset te bekijken [Impl rust: One Billion Row Challange](https://www.youtube.com/watch?v=tCY7p6dVAGE) en dan mogelijks soortgelijke optimalisaties toepassen op de interpreter indien de optimalisaties van toepassing zijn. Dat plus de optimalisaties hieronder besproken zal een interessant challange zijn.
 
 ### 30-01-2026
 
