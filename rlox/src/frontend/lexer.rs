@@ -220,7 +220,21 @@ impl<'a> Lexer<'a> {
                     while self.peek() != '\n' && !self.is_at_end() {
                         self.advance();
                     }
+                } else if self.match_char('*') {
+                    while self.peek() != '*' && !self.is_at_end() {
+                        if self.peek() == '\n' {
+                            self.line += 1;
+                        }
+                        self.advance();
+                    }
+                    if self.is_at_end() || (self.peek() != '/') {
+                        return Err(anyhow!(
+                            "[Line {}] Error: Unterminated block comment!",
+                            self.line
+                        ));
+                    }
                 } else {
+                    // for division
                     self.add_token(TokenType::Slash, None);
                 }
             }
@@ -351,6 +365,20 @@ mod tests {
         assert!(tokens.len() == 1);
         assert_eq!(tokens[0].ttype, TokenType::Eof);
     }
+
+    //TODO merge with above and make one consecutive test
+    // #[test]
+    // fn test_block_comment_part2() {
+    //     let input = "/* This is a block comment
+    //
+    //         and has a newline
+    //         *|
+    //         ";
+    //     let mut lexer = Lexer::new(input);
+    //     let tokens = lexer.scan_tokens().unwrap();
+    //     assert!(tokens.len() == 1);
+    //     assert_eq!(tokens[0].ttype, TokenType::Eof);
+    // }
 
     #[test]
     fn test_whitespaces_and_return() {
