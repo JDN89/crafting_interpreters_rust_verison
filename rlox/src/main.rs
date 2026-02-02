@@ -48,7 +48,10 @@ fn run_prompt() -> Result<()> {
 fn run(source: &str) -> Result<()> {
     println!("the source is : {:?}", source);
     let mut lexer = Lexer::new(source);
-    let _ = lexer.scan_tokens();
+    let tokens = lexer.scan_tokens()?;
+    for token in tokens {
+        println!("{:?}", token)
+    }
 
     // lexer::scan(source);
     Ok(())
