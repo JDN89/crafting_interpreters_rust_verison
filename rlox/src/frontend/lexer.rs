@@ -373,15 +373,50 @@ mod tests {
         assert_eq!(tokens[1].ttype, TokenType::Eof);
     }
 
+    // "and" => TokenType::And,
+    // "class" => TokenType::Class,
+    // "else" => TokenType::Else,
+    // "false" => TokenType::False,
+    // "for" => TokenType::For,
+    // "fun" => TokenType::Fun,
+    // "if" => TokenType::If,
+    // "nil" => TokenType::Nil,
+    // "or" => TokenType::Or,
+    // "print" => TokenType::Print,
+    // "return" => TokenType::Return,
+    // "super" => TokenType::Super,
+    // "this" => TokenType::This,
+    // "true" => TokenType::True,
+    // "var" => TokenType::Var,
+    // "while" => TokenType::While,
     #[test]
     fn test_keyword() {
-        let input = "print";
-        let mut lexer = Lexer::new(input);
-        let tokens = lexer.scan_tokens().unwrap();
-        assert!(tokens.len() == 2);
-        assert_eq!(tokens[0].ttype, TokenType::Print);
-        assert_eq!(tokens[0].lexeme, "print");
-        assert_eq!(tokens[1].ttype, TokenType::Eof);
+        let test_cases = vec![
+            ("and", TokenType::And),
+            ("class", TokenType::Class),
+            ("else", TokenType::Else),
+            ("false", TokenType::False),
+            ("for", TokenType::For),
+            ("fun", TokenType::Fun),
+            ("if", TokenType::If),
+            ("nil", TokenType::Nil),
+            ("or", TokenType::Or),
+            ("print", TokenType::Print),
+            ("super", TokenType::Super),
+            ("this", TokenType::This),
+            ("true", TokenType::True),
+            ("var", TokenType::Var),
+            ("while", TokenType::While),
+        ];
+
+        for (input, ttype) in test_cases {
+            let mut lexer = Lexer::new(input);
+            let tokens = lexer.scan_tokens().unwrap();
+            assert!(tokens.len() == 2);
+            assert_eq!(tokens[0].ttype, ttype);
+            assert_eq!(tokens[0].lexeme, input);
+            assert_eq!(tokens[1].ttype, TokenType::Eof);
+        }
     }
 
     #[test]
