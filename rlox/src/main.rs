@@ -33,7 +33,9 @@ fn run_prompt() -> Result<()> {
     println!("Running prompt");
     let mut input = String::new();
     loop {
-        let bytes_read = io::stdin().read_line(&mut input)?;
+        let bytes_read = io::stdin()
+            .read_line(&mut input)
+            .context("Error readin bytes from stdin")?;
         if bytes_read == 0 {
             break; // EOF
         }
@@ -46,7 +48,6 @@ fn run_prompt() -> Result<()> {
 }
 
 fn run(source: &str) -> Result<()> {
-    println!("the source is : {:?}", source);
     let mut lexer = Lexer::new(source);
     let tokens = lexer.scan_tokens()?;
     for token in tokens {
