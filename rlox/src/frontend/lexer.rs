@@ -214,27 +214,36 @@ impl<'a> Lexer<'a> {
                 }
             }
             '/' => {
-                let token_matches_slash = self.match_char('/');
-                if token_matches_slash {
-                    // NOTE a comment goes until the end of the line
+                // NOTE '//' is a comment and goes till the end of the line
+                if self.match_char('/') {
                     while self.peek() != '\n' && !self.is_at_end() {
                         self.advance();
                     }
-                } else if self.match_char('*') {
-                    while self.peek() != '*' && !self.is_at_end() {
+                }
+                // NOTE /* is block comment */
+                else if self.match_char('*') {
+                    // NOTE consume al chars until we encounter the closing '*/'
+                    while self.peek() != '*' && self.peek_next() != '/' && !self.is_at_end() {
                         if self.peek() == '\n' {
                             self.line += 1;
                         }
                         self.advance();
                     }
-                    if self.is_at_end() || (self.peek() != '/') {
+
+                    // NOTE consume '*/' characters
+                    self.advance();
+                    self.advance();
+
+                    // NOTE bug if we are at end or if we don't find the terminating '/' for the block
+                    // comment
+                    if self.is_at_end() {
                         return Err(anyhow!(
                             "[Line {}] Error: Unterminated block comment!",
                             self.line
                         ));
                     }
                 } else {
-                    // for division
+                    // NOTE only '/' for division
                     self.add_token(TokenType::Slash, None);
                 }
             }
