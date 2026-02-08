@@ -1,7 +1,6 @@
 # TODO
 
-- [ ] write test for identifier vs keyword lexing
-- [ ] look up detailed difference between static and const keyword. Explanation in programming Rust book is to limited. Vooral wanneer gebruik je static <> const?
+- [ ] fix block comment lexing
 
 ## Nice to have
 
@@ -26,6 +25,12 @@ De **scanner** loopt de hele source code door en geeft de lexemes extra info zod
 Daarna kan de **parser** die tokens gebruiken om de structuur van het programma te herkennen en zo een **AST** opbouwen.
 
 Als je alles in één keer zou doen, moest de **parser** constant zelf gaan checken: oké, dit is een var, daarna een identifier, dan een =, dan een literal… Dat wordt heel snel complex. Door eerst te scannen en tokens te maken, kan de parser zich gewoon richten op de volgorde en structuur, zonder per karakter te hoeven nadenken.
+
+## Chapter 5 Representing code
+
+I am considering immediatley implementing the allocator to store the expresions instead of using Box<Expr>.
+For example Binary would become: {left: exprId, operator:..., right: ExprId}. This way I don't have to mess with Box, the expr
+won't be spread out in memory,... But I want to see the memory and performance gains, so I'll do it the naive way first.
 
 ## Chapter 4 Scanning
 
