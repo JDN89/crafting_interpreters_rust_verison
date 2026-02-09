@@ -2,10 +2,10 @@ use core::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
-pub enum Literal<'a> {
-    Str(&'a str),
+pub enum Literal {
+    Str(String),
     Boolean(bool),
-    Integer(f64),
+    Float(f64),
 }
 
 // TODO bekijk of we toch echt zowel de lexeme als de literal nodig? Hebben we ze uberhoupt nodig?
@@ -17,20 +17,15 @@ pub enum Literal<'a> {
 // https://www.youtube.com/watch?v=IroPQ150F6c
 // Bekijk na implementeren van de interpreter en zie of ik het sneller kan maken!
 #[derive(Debug, Clone, PartialEq)]
-pub struct Token<'a> {
+pub struct Token {
     pub ttype: TokenType,
-    pub lexeme: &'a str,
-    pub literal: Option<Literal<'a>>,
+    pub lexeme: String,
+    pub literal: Option<Literal>,
     pub line: u32,
 }
 
-impl Token<'_> {
-    pub fn new<'a>(
-        ttype: TokenType,
-        lexeme: &'a str,
-        literal: Option<Literal<'a>>,
-        line: u32,
-    ) -> Token<'a> {
+impl Token {
+    pub fn new(ttype: TokenType, lexeme: String, literal: Option<Literal>, line: u32) -> Token {
         Token {
             ttype,
             lexeme,
@@ -41,7 +36,7 @@ impl Token<'_> {
 }
 
 // Optional: implement Display for nicer printing
-impl fmt::Display for Token<'_> {
+impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,

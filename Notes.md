@@ -6,6 +6,8 @@
 
 - [ ] decend error reporter. See chapter 4.1.1
 - [ ] Arana alloc
+  - [ ] push Expr on the arena and store the index of the location in the arena in the AST
+  - [ ] for subslices just store the start and end of the ss, and when you actually need the slice, index into the soruce code...
 - [ ] reduce memory footprint Tokens
   - [ ] research memory profiling tools in Rust. What is there?
 - [ ] Struct of Arrays instead of Array of struct
@@ -31,6 +33,12 @@ Als je alles in één keer zou doen, moest de **parser** constant zelf gaan chec
 I am considering immediatley implementing the allocator to store the expresions instead of using Box<Expr>.
 For example Binary would become: {left: exprId, operator:..., right: ExprId}. This way I don't have to mess with Box, the expr
 won't be spread out in memory,... But I want to see the memory and performance gains, so I'll do it the naive way first.
+
+**Recursive descent parsing** we go from lowest precendece to higherst precendece and each grammar rule (precendece) is implemented as a function. higher-precendece gets handled by functions farther down the stack.
+
+Ik moet de AST structuur and how right-associative `a = b = c` en **left-associative** (5-3)-1 correct worden afgehandled door recursive descent parser nog wat laten inzinken.
+
+**Ripped out** the **lifetimes** and references to the source code. Ik gebruikte dit voor de lexemes en waarom... Nu geef ik enkel de source code door als reference en de andere zaken clone ik voorlopig (to_string()). Waarom? Ik wil niet de hele tijd die lifetimes doorheen mijn code meeslepen als ik later tijdens de performance upgrade toch gebruik ga maken van een **arena** en de lifetimes dan toch overbodig gaan worden. Dus waarom nu adden en dan weer verwijdern gewoon om de performance impact te zien. Ik weet toch al dat er winst gaat zijn. Dit wil zeggen dat ik source code ook op de arena ga smijten en dan voor de substrings iets ga doen a la `struct Span {start u32, end u32}`.
 
 ## Chapter 4 Scanning
 

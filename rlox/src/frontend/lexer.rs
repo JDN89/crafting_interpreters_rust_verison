@@ -27,7 +27,7 @@ static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
 
 pub struct Lexer<'a> {
     source: &'a str,
-    tokens: Vec<Token<'a>>,
+    tokens: Vec<Token>,
     start: usize,
     current: usize,
     line: u32,
@@ -58,11 +58,11 @@ impl<'a> Lexer<'a> {
         c
     }
 
-    fn add_token(&mut self, ttype: TokenType, literal: Option<Literal<'a>>) {
+    fn add_token(&mut self, ttype: TokenType, literal: Option<Literal>) {
         // NOTE: range exclusive omdat current al advanced is naar de volgende positie, door
         // self.advance()
         let text = &self.source[self.start..self.current];
-        let token = Token::new(ttype, text, literal, self.line);
+        let token = Token::new(ttype, text.to_string(), literal, self.line);
         self.tokens.push(token);
     }
 
@@ -120,7 +120,7 @@ impl<'a> Lexer<'a> {
         self.advance();
 
         let value = &self.source[self.start + 1..self.current - 1];
-        self.add_token(TokenType::String, Some(Literal::Str(value)));
+        self.add_token(TokenType::String, Some(Literal::Str(value.to_string())));
 
         Ok(())
     }
@@ -143,7 +143,7 @@ impl<'a> Lexer<'a> {
         let number = self.source[self.start..self.current]
             .parse::<f64>()
             .expect("Error parsing str to number in lexer:: number()");
-        self.add_token(TokenType::Number, Some(Literal::Integer(number.to_owned())));
+        self.add_token(TokenType::Number, Some(Literal::Float(number.to_owned())));
     }
 
     fn is_alpha(&self, c: char) -> bool {
@@ -263,13 +263,13 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
-    pub fn scan_tokens(&mut self) -> Result<&Vec<Token<'_>>> {
+    pub fn scan_tokens(&mut self) -> Result<&Vec<Token>> {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token()?
         }
         self.tokens
-            .push(Token::new(TokenType::Eof, "", None, self.line));
+            .push(Token::new(TokenType::Eof, "".to_string(), None, self.line));
 
         Ok(&self.tokens)
     }
@@ -412,7 +412,7 @@ mod tests {
         let tokens = lexer.scan_tokens().unwrap();
         assert!(tokens.len() == 2);
         assert_eq!(tokens[0].ttype, TokenType::String);
-        match tokens[0].literal {
+        match &tokens[0].literal {
             Some(Literal::Str(s)) => {
                 assert_eq!(s, &input[input_start..input_end]);
                 assert_eq!(s, " yolo");
@@ -463,7 +463,7 @@ mod tests {
         assert!(tokens.len() == 2);
         assert_eq!(tokens[0].ttype, TokenType::Number);
         match tokens[0].literal {
-            Some(Literal::Integer(number)) => {
+            Some(Literal::Float(number)) => {
                 assert_eq!(number, expected);
                 assert_eq!(tokens[0].lexeme, "123.45");
             }
