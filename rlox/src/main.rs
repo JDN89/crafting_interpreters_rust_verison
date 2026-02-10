@@ -9,6 +9,7 @@ use anyhow::bail;
 
 // use crate::frontend::lexer;
 use crate::frontend::lexer::Lexer;
+use crate::frontend::parser::Parser;
 
 mod frontend;
 
@@ -50,6 +51,7 @@ fn run_prompt() -> Result<()> {
 fn run(source: &str) -> Result<()> {
     let mut lexer = Lexer::new(source);
     let tokens = lexer.scan_tokens()?;
+    let mut parser = Parser::new(tokens);
     for token in tokens {
         println!("{:?}", token)
     }

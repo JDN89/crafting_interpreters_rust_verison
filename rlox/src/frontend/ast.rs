@@ -1,11 +1,13 @@
-use crate::frontend::token::Token;
-
 // TODO: I am doubting if I should immediatley use an allocator and push the expr on it, that
 // returns an exprId. Binary
 // would become
 // {left: exprId, operator:..., right: ExprId}. This way I don't have to mess with Box, the expr
 // won't be spread out in memory,... But I want to see the memory and performance gains, so lets do
 // it the naive way first
+
+use anyhow::*;
+
+use crate::frontend::token::TokenType;
 
 // TODO this enum is exactly the same as the token Literal enum. Something's got to go!!
 // TODO even the source can go on the allocator. when we need a substring just store the start and
@@ -22,17 +24,31 @@ pub enum Literal {
 
 #[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
-enum Operator {
+pub enum Operator {
     Plus,
     Minus,
     Star,
     Slash,
     Equals,
 }
+impl Operator {
+    pub fn from_token_type(ttype: TokenType) -> Result<Self, Error> {
+        match ttype {
+            TokenType::Plus => Ok(Operator::Plus),
+            TokenType::Minus => Ok(Operator::Minus),
+            TokenType::Star => Ok(Operator::Star),
+            TokenType::Slash => Ok(Operator::Slash),
+            _ => Err(anyhow!(
+                "[TokenType {:?}] doesn't have a matching operator",
+                ttype
+            )),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
-enum Expr {
+pub enum Expr {
     Binary {
         left: Box<Expr>,
         op: Operator,
