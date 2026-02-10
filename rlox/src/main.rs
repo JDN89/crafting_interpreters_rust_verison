@@ -50,6 +50,7 @@ fn run_prompt() -> Result<()> {
 
 fn run(source: &str) -> Result<()> {
     let mut lexer = Lexer::new(source);
+    // NOTE: pass ownership of the tokens from the lexer to the parser
     let tokens = lexer.scan_tokens()?;
     let mut parser = Parser::new(tokens);
     for token in tokens {

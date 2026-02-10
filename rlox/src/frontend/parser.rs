@@ -5,13 +5,16 @@ use crate::frontend::ast::{Expr, Operator};
 use crate::frontend::token::{Token, TokenType};
 
 // TODO: again. get rid of the lifetime. We are draggin &str subslices around beter to something like struct Span { start: u32, len: u32 } and then slice in to the source code if I actually need the source code which I don't think i do at the moment... Rip it out?
+// TODO: I just realised that Everytime I allocate a token to an arena i can just pas Vec<i32>
+// around faster then passing Vec<&Token> references around. I think ref takes more memory and is a
+// bit slower then indexing into an vec?
 pub struct Parser {
-    tokens: Vec<&Token>,
+    tokens: Vec<Token>,
     current: usize,
 }
 
 impl Parser {
-    pub fn new(tokens: Vec<&Token>) -> Self {
+    pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
 

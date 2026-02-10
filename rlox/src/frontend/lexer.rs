@@ -263,16 +263,16 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
-    pub fn scan_tokens(&mut self) -> Result<&Vec<Token>> {
-        while !self.is_at_end() {
-            self.start = self.current;
-            self.scan_token()?
-        }
-        self.tokens
-            .push(Token::new(TokenType::Eof, "".to_string(), None, self.line));
-
-        Ok(&self.tokens)
+pub fn scan_tokens(mut self) -> Result<Vec<Token>> {
+    while !self.is_at_end() {
+        self.start = self.current;
+        self.scan_token()?;
     }
+
+    self.tokens
+        .push(Token::new(TokenType::Eof, "".to_string(), None, self.line));
+
+    Ok(self.tokens)
 }
 
 #[cfg(test)]
