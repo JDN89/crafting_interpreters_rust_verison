@@ -1,6 +1,8 @@
 # TODO
 
 - [ ] fix block comment lexing
+- [ ] run test er push in github?
+- [ ] remove Literal from token. Just keep the lexeme and token type for now
 
 ## Nice to have
 
@@ -29,6 +31,12 @@ Daarna kan de **parser** die tokens gebruiken om de structuur van het programma 
 Als je alles in één keer zou doen, moest de **parser** constant zelf gaan checken: oké, dit is een var, daarna een identifier, dan een =, dan een literal… Dat wordt heel snel complex. Door eerst te scannen en tokens te maken, kan de parser zich gewoon richten op de volgorde en structuur, zonder per karakter te hoeven nadenken.
 
 ## Chapter 5 Representing code
+
+### 11-02-2026
+
+Echt niet blij met de hoeveelheid data dat momenteel in de token en AST zit. Zeker the Literal die ik zowel in de token als AST heb. Ik denk dat ik het best uit de token haal en de Literal wel in de AST behoudt. parse gewoon de lexeme om de correcte value te bekomen.
+
+xxxx
 
 I am considering immediatley implementing the allocator to store the expresions instead of using Box<Expr>.
 For example Binary would become: {left: exprId, operator:..., right: ExprId}. This way I don't have to mess with Box, the expr
