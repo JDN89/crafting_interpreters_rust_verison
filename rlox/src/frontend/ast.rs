@@ -68,4 +68,7 @@ pub enum Expr {
     Variable {
         name: String,
     },
+    Grouping {
+        value: Box<Expr>,
+    },
 }

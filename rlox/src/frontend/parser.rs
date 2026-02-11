@@ -1,6 +1,11 @@
+use std::vec;
+
+use anyhow::anyhow;
 use anyhow::Context;
+use anyhow::Ok;
 use anyhow::Result;
 
+use crate::frontend::ast::Literal;
 use crate::frontend::ast::{Expr, Operator};
 use crate::frontend::token::{Token, TokenType};
 
@@ -61,19 +66,37 @@ impl Parser {
             .expect("Error indexing into Parser::tokens");
     }
 
-    fn comparison(&self) -> Expr {
-        todo!()
+    fn comparison(&mut self) -> Result<Expr> {
+        let mut expr = self.term()?;
+        while self.match_ttype(vec![
+            TokenType::Greater,
+            TokenType::Less,
+            TokenType::LessEqual,
+        ]) {
+            // NOTE TokenType is of type copy. If we returned &token we run into borrowing issues
+            //Rust tracks borrows based on how long a reference is stored, not how long the function call lasts.
+            let operator_type = self.previous().ttype;
+            let right = self.term()?;
+
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                op: Operator::from_token_type(operator_type)
+                    .context("Could not convert token type to operator")?,
+                right: Box::new(right),
+            }
+        }
+        return Ok(expr);
     }
 
     fn equality(&mut self) -> Result<Expr> {
-        let mut expr = self.comparison();
+        let mut expr = self.comparison()?;
 
         while self.match_ttype(vec![TokenType::BangEqual, TokenType::EqualEqual]) {
-            let token = self.previous();
-            let right = self.comparison();
+            let operator_type = self.previous().ttype;
+            let right = self.comparison()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
-                op: Operator::from_token_type(token.ttype)
+                op: Operator::from_token_type(operator_type)
                     .context("Could not convert token type to operator")?,
                 right: Box::new(right),
             }
@@ -83,5 +106,88 @@ impl Parser {
 
     fn expression(&mut self) -> Result<Expr> {
         self.equality()
+    }
+
+    fn term(&mut self) -> Result<Expr> {
+        let mut expr = self.factor()?;
+        while self.match_ttype(vec![TokenType::Minus, TokenType::Plus]) {
+            let operator_type = self.previous().ttype;
+            let right = self.factor()?;
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                op: Operator::from_token_type(operator_type)
+                    .context("Could not convert token type to operator")?,
+                right: Box::new(right),
+            }
+        }
+        return Ok(expr);
+    }
+
+    fn factor(&mut self) -> Result<Expr> {
+        let expr = self.unary()?;
+        while self.match_ttype(vec![TokenType::Slash, TokenType::Star]) {
+            let operator = self.previous().ttype;
+            let right = self.unary()?;
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                op: Operator::from_token_type(operator_type)
+                    .context("Could not convert token type to operator")?,
+                right: Box::new(right),
+            }
+        }
+        Ok(expr)
+    }
+
+    fn unary(&mut self) -> Result<Expr> {
+        if self.match_ttype(vec![TokenType::Bang, TokenType::Minus]) {
+            let operator = self.previous().ttype;
+            let right = self.unary()?;
+            return Ok(Expr::Unary {
+                op: Operator::from_token_type(operator)
+                    .context("Could not convert token type to operator")?,
+                right: Box::new(right),
+            });
+        } else {
+            return self.primary();
+        }
+    }
+
+    fn primary(&self) -> Result<Expr> {
+        if self.match_ttype(vec![TokenType::False]) {
+            return Ok(Expr::Literal {
+                value: Literal::Boolean(false),
+            });
+        } if self.match_ttype(vec![TokenType::True]) {
+            return Ok(Expr::Literal {
+                value: Literal::Boolean(true),
+            });
+        } if self.match_ttype(vec![TokenType::True]) {
+            return Ok(Expr::Literal {
+                value: Literal::Boolean(true),
+            });
+        } if self.match_ttype(vec![TokenType::Number, TokenType::String]) {
+            match &self.previous().literal {
+                Some(Literal::Str(s)) => {
+                    return Ok(Expr::Literal {
+                        value: Literal::Str(s.clone()),
+                    });
+                }
+                Some(Literal::Float(f)) => {
+                    return Ok(Expr::Literal {
+                        value: Literal::Float(f),
+                    });
+                }
+            }
+        }
+        if self.match_ttype(vec![TokenType::LeftParen]) {
+            let expr = self.expression()?;
+            self.consume(TokenType::RightParen, "Expect ')' after expression.");
+            return new Expr::Grouping(expr);
+        }
+    return Err(anyhow!("Expected expression."));
+    }
+
+    fn consume(&self, right_paren: TokenType, arg: &str) -> Token {
+        todo!()
     }
 }
