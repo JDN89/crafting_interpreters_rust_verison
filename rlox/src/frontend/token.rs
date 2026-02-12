@@ -1,13 +1,5 @@
 use core::fmt;
 
-#[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
-pub enum Literal {
-    Str(String),
-    Boolean(bool),
-    Float(f64),
-}
-
 // TODO bekijk of we toch echt zowel de lexeme als de literal nodig? Hebben we ze uberhoupt nodig?
 // Kan ik niet gewoon hun positie in de source code meegeven en dan ze interpreteren (op basis van
 // token type) of subslicen indien ik het relevante source code gedeelete nodig heb? Ik denk dat ik
@@ -20,16 +12,14 @@ pub enum Literal {
 pub struct Token {
     pub ttype: TokenType,
     pub lexeme: String,
-    pub literal: Option<Literal>,
     pub line: u32,
 }
 
 impl Token {
-    pub fn new(ttype: TokenType, lexeme: String, literal: Option<Literal>, line: u32) -> Token {
+    pub fn new(ttype: TokenType, lexeme: String, line: u32) -> Token {
         Token {
             ttype,
             lexeme,
-            literal,
             line,
         }
     }
@@ -40,8 +30,8 @@ impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Token {{ type: {:?}, lexeme: '{}', literal: '{:?}', line: {} }}",
-            self.ttype, self.lexeme, self.literal, self.line
+            "Token {{ type: {:?}, lexeme: '{}',  line: {} }}",
+            self.ttype, self.lexeme, self.line
         )
     }
 }

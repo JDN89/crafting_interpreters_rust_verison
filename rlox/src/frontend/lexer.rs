@@ -2,7 +2,7 @@ use anyhow::*;
 
 use phf::phf_map;
 
-use crate::frontend::token::{Literal, Token, TokenType};
+use crate::frontend::token::{Token, TokenType};
 
 // [source code phf](https://docs.rs/phf/latest/phf/)
 
@@ -58,11 +58,11 @@ impl<'a> Lexer<'a> {
         c
     }
 
-    fn add_token(&mut self, ttype: TokenType, literal: Option<Literal>) {
+    fn add_token(&mut self, ttype: TokenType) {
         // NOTE: range exclusive omdat current al advanced is naar de volgende positie, door
         // self.advance()
         let text = &self.source[self.start..self.current];
-        let token = Token::new(ttype, text.to_string(), literal, self.line);
+        let token = Token::new(ttype, text.to_string(), self.line);
         self.tokens.push(token);
     }
 
@@ -119,8 +119,7 @@ impl<'a> Lexer<'a> {
         // NOTE consume the enclosing "
         self.advance();
 
-        let value = &self.source[self.start + 1..self.current - 1];
-        self.add_token(TokenType::String, Some(Literal::Str(value.to_string())));
+        self.add_token(TokenType::String);
 
         Ok(())
     }
@@ -140,10 +139,7 @@ impl<'a> Lexer<'a> {
                 self.advance();
             }
         }
-        let number = self.source[self.start..self.current]
-            .parse::<f64>()
-            .expect("Error parsing str to number in lexer:: number()");
-        self.add_token(TokenType::Number, Some(Literal::Float(number.to_owned())));
+        self.add_token(TokenType::Number);
     }
 
     fn is_alpha(&self, c: char) -> bool {
@@ -161,8 +157,8 @@ impl<'a> Lexer<'a> {
         let text = &self.source[self.start..self.current];
         let ttype = KEYWORDS.get(text);
         match ttype {
-            Some(value) => self.add_token(*value, None),
-            None => self.add_token(TokenType::Identifier, None),
+            Some(value) => self.add_token(*value),
+            None => self.add_token(TokenType::Identifier),
         }
     }
 
@@ -170,47 +166,47 @@ impl<'a> Lexer<'a> {
         // NOTE This call to advance also consumes the default error line
         let c = self.advance();
         match c {
-            '(' => self.add_token(TokenType::LeftParen, None),
-            ')' => self.add_token(TokenType::RightParen, None),
-            '{' => self.add_token(TokenType::LeftBrace, None),
-            '}' => self.add_token(TokenType::RightBrace, None),
-            ',' => self.add_token(TokenType::Comma, None),
-            '.' => self.add_token(TokenType::Dot, None),
-            '-' => self.add_token(TokenType::Minus, None),
-            '+' => self.add_token(TokenType::Plus, None),
-            ';' => self.add_token(TokenType::Semicolon, None),
-            '*' => self.add_token(TokenType::Star, None),
+            '(' => self.add_token(TokenType::LeftParen),
+            ')' => self.add_token(TokenType::RightParen),
+            '{' => self.add_token(TokenType::LeftBrace),
+            '}' => self.add_token(TokenType::RightBrace),
+            ',' => self.add_token(TokenType::Comma),
+            '.' => self.add_token(TokenType::Dot),
+            '-' => self.add_token(TokenType::Minus),
+            '+' => self.add_token(TokenType::Plus),
+            ';' => self.add_token(TokenType::Semicolon),
+            '*' => self.add_token(TokenType::Star),
             '!' => {
                 let token_matches_equal = self.match_char('=');
                 if token_matches_equal {
-                    self.add_token(TokenType::BangEqual, None);
+                    self.add_token(TokenType::BangEqual);
                 } else {
                     // NOTE when it doesn't match current doesn't advance
-                    self.add_token(TokenType::Bang, None);
+                    self.add_token(TokenType::Bang);
                 }
             }
             '=' => {
                 let token_matches_equal = self.match_char('=');
                 if token_matches_equal {
-                    self.add_token(TokenType::EqualEqual, None);
+                    self.add_token(TokenType::EqualEqual);
                 } else {
-                    self.add_token(TokenType::Equal, None);
+                    self.add_token(TokenType::Equal);
                 }
             }
             '<' => {
                 let token_matches_equal = self.match_char('=');
                 if token_matches_equal {
-                    self.add_token(TokenType::LessEqual, None);
+                    self.add_token(TokenType::LessEqual);
                 } else {
-                    self.add_token(TokenType::Less, None);
+                    self.add_token(TokenType::Less);
                 }
             }
             '>' => {
                 let token_matches_equal = self.match_char('=');
                 if token_matches_equal {
-                    self.add_token(TokenType::GreaterEqual, None);
+                    self.add_token(TokenType::GreaterEqual);
                 } else {
-                    self.add_token(TokenType::Greater, None);
+                    self.add_token(TokenType::Greater);
                 }
             }
             '/' => {
@@ -244,7 +240,7 @@ impl<'a> Lexer<'a> {
                     }
                 } else {
                     // NOTE only '/' for division
-                    self.add_token(TokenType::Slash, None);
+                    self.add_token(TokenType::Slash);
                 }
             }
             ' ' | '\r' | '\t' => (),
@@ -270,7 +266,7 @@ impl<'a> Lexer<'a> {
         }
 
         self.tokens
-            .push(Token::new(TokenType::Eof, "".to_string(), None, self.line));
+            .push(Token::new(TokenType::Eof, "".to_string(), self.line));
 
         Ok(self.tokens)
     }
@@ -282,7 +278,7 @@ mod tests {
 
     #[test]
     fn test_empty_source() {
-        let mut lexer = Lexer::new("");
+        let lexer = Lexer::new("");
         let tokens = lexer.scan_tokens().unwrap();
 
         assert_eq!(tokens.len(), 1);
@@ -291,7 +287,7 @@ mod tests {
 
     #[test]
     fn test_single_left_paren() {
-        let mut lexer = Lexer::new("(");
+        let lexer = Lexer::new("(");
         let tokens = lexer.scan_tokens().unwrap();
 
         assert_eq!(tokens.len(), 2); // LeftParen + Eof
@@ -302,7 +298,7 @@ mod tests {
 
     #[test]
     fn test_multiple_left_parens() {
-        let mut lexer = Lexer::new("(((");
+        let lexer = Lexer::new("(((");
         let tokens = lexer.scan_tokens().unwrap();
 
         assert_eq!(tokens.len(), 4); // 3 LeftParens + Eof
@@ -314,7 +310,7 @@ mod tests {
 
     #[test]
     fn test_unexpected_character_error() {
-        let mut lexer = Lexer::new("$");
+        let lexer = Lexer::new("$");
         let result = lexer.scan_tokens();
 
         assert!(result.is_err());
@@ -324,7 +320,7 @@ mod tests {
 
     #[test]
     fn test_line_tracking() {
-        let mut lexer = Lexer::new("(");
+        let lexer = Lexer::new("(");
         let tokens = lexer.scan_tokens().unwrap();
 
         assert_eq!(tokens[0].line, 1);
@@ -348,7 +344,7 @@ mod tests {
         ];
 
         for (input, expected_type) in test_cases {
-            let mut lexer = Lexer::new(input);
+            let lexer = Lexer::new(input);
             let tokens = lexer.scan_tokens().unwrap();
             assert_eq!(tokens[0].ttype, expected_type);
         }
@@ -357,7 +353,7 @@ mod tests {
     #[test]
     fn test_comment() {
         let input = "// This is a comment";
-        let mut lexer = Lexer::new(input);
+        let lexer = Lexer::new(input);
         let tokens = lexer.scan_tokens().unwrap();
         assert!(tokens.len() == 1);
         assert_eq!(tokens[0].ttype, TokenType::Eof);
@@ -370,7 +366,7 @@ mod tests {
             and has a newline
             */
             ";
-        let mut lexer = Lexer::new(input);
+        let lexer = Lexer::new(input);
         let tokens = lexer.scan_tokens().unwrap();
         assert!(tokens.len() == 1);
         assert_eq!(tokens[0].ttype, TokenType::Eof);
@@ -395,32 +391,21 @@ mod tests {
         let input = "    
 
           (";
-        let mut lexer = Lexer::new(input);
+        let lexer = Lexer::new(input);
         let tokens = lexer.scan_tokens().unwrap();
         assert!(tokens.len() == 2);
         assert_eq!(tokens[0].ttype, TokenType::LeftParen);
         assert_eq!(tokens[1].ttype, TokenType::Eof);
-        assert_eq!(lexer.line, 3);
     }
 
     #[test]
     fn test_string() {
         let input = "\" yolo\"";
-        let input_start = 1;
-        let input_end = input.len() - 1;
 
-        let mut lexer = Lexer::new(input);
+        let lexer = Lexer::new(input);
         let tokens = lexer.scan_tokens().unwrap();
         assert!(tokens.len() == 2);
         assert_eq!(tokens[0].ttype, TokenType::String);
-        match &tokens[0].literal {
-            Some(Literal::Str(s)) => {
-                assert_eq!(s, &input[input_start..input_end]);
-                assert_eq!(s, " yolo");
-                assert_eq!(tokens[0].lexeme, "\" yolo\"");
-            }
-            _ => panic!("Expected string literal"),
-        }
         assert_eq!(tokens[1].ttype, TokenType::Eof);
     }
 
@@ -446,7 +431,7 @@ mod tests {
         ];
 
         for (input, ttype) in test_cases {
-            let mut lexer = Lexer::new(input);
+            let lexer = Lexer::new(input);
             let tokens = lexer.scan_tokens().unwrap();
             assert!(tokens.len() == 2);
             assert_eq!(tokens[0].ttype, ttype);
@@ -458,17 +443,9 @@ mod tests {
     #[test]
     fn test_number() {
         let input = "123.45";
-        let expected: f64 = 123.45;
-        let mut lexer = Lexer::new(input);
+        let lexer = Lexer::new(input);
         let tokens = lexer.scan_tokens().unwrap();
         assert!(tokens.len() == 2);
         assert_eq!(tokens[0].ttype, TokenType::Number);
-        match tokens[0].literal {
-            Some(Literal::Float(number)) => {
-                assert_eq!(number, expected);
-                assert_eq!(tokens[0].lexeme, "123.45");
-            }
-            _ => panic!("Expected number Literal"),
-        }
     }
 }

@@ -52,7 +52,7 @@ fn run(source: &str) -> Result<()> {
     let lexer = Lexer::new(source);
     // NOTE: pass ownership of the tokens from the lexer to the parser
     let tokens = lexer.scan_tokens()?;
-    let parser = Parser::new(tokens);
+    let _parser = Parser::new(tokens);
 
     // lexer::scan(source);
     Ok(())

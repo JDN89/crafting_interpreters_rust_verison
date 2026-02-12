@@ -1,9 +1,9 @@
 use std::vec;
 
-use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Ok;
 use anyhow::Result;
+use anyhow::anyhow;
 
 use crate::frontend::ast::Literal;
 use crate::frontend::ast::{Expr, Operator};
@@ -124,13 +124,13 @@ impl Parser {
     }
 
     fn factor(&mut self) -> Result<Expr> {
-        let expr = self.unary()?;
+        let mut expr = self.unary()?;
         while self.match_ttype(vec![TokenType::Slash, TokenType::Star]) {
             let operator = self.previous().ttype;
             let right = self.unary()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
-                op: Operator::from_token_type(operator_type)
+                op: Operator::from_token_type(operator)
                     .context("Could not convert token type to operator")?,
                 right: Box::new(right),
             }
@@ -152,39 +152,46 @@ impl Parser {
         }
     }
 
-    fn primary(&self) -> Result<Expr> {
+    fn primary(&mut self) -> Result<Expr> {
         if self.match_ttype(vec![TokenType::False]) {
             return Ok(Expr::Literal {
                 value: Literal::Boolean(false),
             });
-        } if self.match_ttype(vec![TokenType::True]) {
+        }
+        if self.match_ttype(vec![TokenType::True]) {
             return Ok(Expr::Literal {
                 value: Literal::Boolean(true),
             });
-        } if self.match_ttype(vec![TokenType::True]) {
+        }
+        if self.match_ttype(vec![TokenType::True]) {
             return Ok(Expr::Literal {
                 value: Literal::Boolean(true),
             });
-        } if self.match_ttype(vec![TokenType::Number, TokenType::String]) {
-            match &self.previous().literal {
-                Some(Literal::Str(s)) => {
-                    return Ok(Expr::Literal {
-                        value: Literal::Str(s.clone()),
-                    });
-                }
-                Some(Literal::Float(f)) => {
-                    return Ok(Expr::Literal {
-                        value: Literal::Float(f),
-                    });
-                }
-            }
+        }
+
+        if self.match_ttype(vec![TokenType::String]) {
+            return Ok(Expr::Literal {
+                value: Literal::Str(self.previous().lexeme.clone()),
+            });
+        }
+        if self.match_ttype(vec![TokenType::Number]) {
+            return Ok(Expr::Literal {
+                value: Literal::Float(
+                    self.previous()
+                        .lexeme
+                        .parse()
+                        .expect("Invalid number literal"),
+                ),
+            });
         }
         if self.match_ttype(vec![TokenType::LeftParen]) {
             let expr = self.expression()?;
             self.consume(TokenType::RightParen, "Expect ')' after expression.");
-            return new Expr::Grouping(expr);
+            return Ok(Expr::Grouping {
+                value: Box::new(expr),
+            });
         }
-    return Err(anyhow!("Expected expression."));
+        return Err(anyhow!("Expected expression."));
     }
 
     fn consume(&self, right_paren: TokenType, arg: &str) -> Token {
