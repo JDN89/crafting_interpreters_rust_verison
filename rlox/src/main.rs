@@ -54,10 +54,11 @@ fn run(source: &str) -> Result<()> {
     let tokens = lexer.scan_tokens()?;
     let mut parser = Parser::new(tokens);
     // TODO: catch the error and maybe report it?
+    // look at the panic mode impl and see how to handle this here
     let expr = parser.parse();
 
     match expr {
-        Ok(ex) => println!("{:?}", ex),
+        Ok(ex) => println!("{ex}"),
         Err(err) => println!("{:?}", err),
     }
 

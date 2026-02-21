@@ -5,6 +5,8 @@
 // won't be spread out in memory,... But I want to see the memory and performance gains, so lets do
 // it the naive way first
 
+use core::fmt;
+
 use anyhow::*;
 
 use crate::frontend::token::TokenType;
@@ -20,6 +22,15 @@ pub enum Literal {
     Str(String),
     Boolean(bool),
     Float(f64),
+}
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Literal::Str(s) => write!(f, "{s}"),
+            Literal::Boolean(b) => write!(f, "{b}"),
+            Literal::Float(n) => write!(f, "{n}"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -43,6 +54,18 @@ impl Operator {
                 ttype
             )),
         }
+    }
+}
+impl fmt::Display for Operator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Operator::Plus => "+",
+            Operator::Minus => "-",
+            Operator::Star => "*",
+            Operator::Slash => "/",
+            Operator::Equals => "=",
+        };
+        write!(f, "{s}")
     }
 }
 
@@ -71,4 +94,34 @@ pub enum Expr {
     Grouping {
         value: Box<Expr>,
     },
+}
+
+impl fmt::Display for Expr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Expr::Binary { left, op, right } => {
+                write!(f, "({} {} {})", op, left, right)
+            }
+
+            Expr::Unary { op, right } => {
+                write!(f, "({} {})", op, right)
+            }
+
+            Expr::Grouping { value } => {
+                write!(f, "(group {})", value)
+            }
+
+            Expr::Literal { value } => {
+                write!(f, "{value}")
+            }
+
+            Expr::Variable { name } => {
+                write!(f, "{name}")
+            }
+
+            Expr::Assign { op, value } => {
+                write!(f, "({} {})", op, value)
+            }
+        }
+    }
 }
