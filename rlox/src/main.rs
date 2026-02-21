@@ -52,7 +52,14 @@ fn run(source: &str) -> Result<()> {
     let lexer = Lexer::new(source);
     // NOTE: pass ownership of the tokens from the lexer to the parser
     let tokens = lexer.scan_tokens()?;
-    let _parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens);
+    // TODO: catch the error and maybe report it?
+    let expr = parser.parse();
+
+    match expr {
+        Ok(ex) => println!("{:?}", ex),
+        Err(err) => println!("{:?}", err),
+    }
 
     // lexer::scan(source);
     Ok(())

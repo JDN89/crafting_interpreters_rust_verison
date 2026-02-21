@@ -9,7 +9,6 @@ use crate::frontend::ast::Literal;
 use crate::frontend::ast::{Expr, Operator};
 use crate::frontend::token::{Token, TokenType};
 
-// TODO: again. get rid of the lifetime. We are draggin &str subslices around beter to something like struct Span { start: u32, len: u32 } and then slice in to the source code if I actually need the source code which I don't think i do at the moment... Rip it out?
 // TODO: I just realised that Everytime I allocate a token to an arena i can just pas Vec<i32>
 // around faster then passing Vec<&Token> references around. I think ref takes more memory and is a
 // bit slower then indexing into an vec?
@@ -37,7 +36,7 @@ impl Parser {
         if self.is_at_end() {
             return false;
         }
-        return self.peek().ttype == ttype;
+        self.peek().ttype == ttype
     }
 
     fn advance(&mut self) {
@@ -49,21 +48,18 @@ impl Parser {
 
     fn peek(&self) -> &Token {
         self.tokens
-            .iter()
-            .nth(self.current)
+            .get(self.current)
             .expect("Error indexing into tokens")
     }
 
     fn is_at_end(&self) -> bool {
-        return self.peek().ttype == TokenType::Eof;
+        self.peek().ttype == TokenType::Eof
     }
 
     fn previous(&self) -> &Token {
-        return self
-            .tokens
-            .iter()
-            .nth(self.current - 1)
-            .expect("Error indexing into Parser::tokens");
+        self.tokens
+            .get(self.current - 1)
+            .expect("Error indexing into Parser::tokens")
     }
 
     fn comparison(&mut self) -> Result<Expr> {
@@ -85,7 +81,7 @@ impl Parser {
                 right: Box::new(right),
             }
         }
-        return Ok(expr);
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr> {
@@ -101,7 +97,7 @@ impl Parser {
                 right: Box::new(right),
             }
         }
-        return Ok(expr);
+        Ok(expr)
     }
 
     fn expression(&mut self) -> Result<Expr> {
@@ -120,7 +116,7 @@ impl Parser {
                 right: Box::new(right),
             }
         }
-        return Ok(expr);
+        Ok(expr)
     }
 
     fn factor(&mut self) -> Result<Expr> {
@@ -142,13 +138,13 @@ impl Parser {
         if self.match_ttype(vec![TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous().ttype;
             let right = self.unary()?;
-            return Ok(Expr::Unary {
+            Ok(Expr::Unary {
                 op: Operator::from_token_type(operator)
                     .context("Could not convert token type to operator")?,
                 right: Box::new(right),
-            });
+            })
         } else {
-            return self.primary();
+            self.primary()
         }
     }
 
@@ -186,15 +182,25 @@ impl Parser {
         }
         if self.match_ttype(vec![TokenType::LeftParen]) {
             let expr = self.expression()?;
-            self.consume(TokenType::RightParen, "Expect ')' after expression.");
+            self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
             return Ok(Expr::Grouping {
                 value: Box::new(expr),
             });
         }
-        return Err(anyhow!("Expected expression."));
+        Err(anyhow!("Expected expression."))
     }
 
-    fn consume(&self, right_paren: TokenType, arg: &str) -> Token {
-        todo!()
+    // TODO implement panic mode
+    fn consume(&mut self, ttype: TokenType, arg: &str) -> Result<()> {
+        if self.check(ttype) {
+            self.advance();
+            Ok(())
+        } else {
+            Err(anyhow!("{}.", arg))
+        }
+    }
+
+    pub fn parse(&mut self) -> Result<Expr> {
+        self.expression()
     }
 }

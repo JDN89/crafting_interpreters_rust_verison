@@ -4,7 +4,7 @@ use phf::phf_map;
 
 use crate::frontend::token::{Token, TokenType};
 
-// [source code phf](https://docs.rs/phf/latest/phf/)
+// NOTE [source code phf](https://docs.rs/phf/latest/phf/)
 
 static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "and" => TokenType::And,
