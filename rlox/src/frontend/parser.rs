@@ -159,6 +159,11 @@ impl Parser {
                 value: Literal::Boolean(true),
             });
         }
+        if self.match_ttype(vec![TokenType::Nil]) {
+            return Ok(Expr::Literal {
+                value: Literal::Nil,
+            });
+        }
         if self.match_ttype(vec![TokenType::True]) {
             return Ok(Expr::Literal {
                 value: Literal::Boolean(true),

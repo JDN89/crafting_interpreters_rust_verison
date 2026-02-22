@@ -8,9 +8,11 @@ use anyhow::Result;
 use anyhow::bail;
 
 // use crate::frontend::lexer;
+use crate::backend::interpreter::Interpreter;
 use crate::frontend::lexer::Lexer;
 use crate::frontend::parser::Parser;
 
+mod backend;
 mod frontend;
 
 // Custom error reporting helper
@@ -56,9 +58,10 @@ fn run(source: &str) -> Result<()> {
     // TODO: catch the error and maybe report it?
     // look at the panic mode impl and see how to handle this here
     let expr = parser.parse();
+    let interpreter = Interpreter::new();
 
     match expr {
-        Ok(ex) => println!("{ex}"),
+        Ok(ex) => println!("{}", interpreter.evaluate(ex)),
         Err(err) => println!("{:?}", err),
     }
 
