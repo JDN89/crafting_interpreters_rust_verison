@@ -10,6 +10,9 @@ impl Interpreter {
         Interpreter {}
     }
 
+    // TODO: replace panic once done
+    // NOTE maybe compute literal in the itnerpreter face and just pass the start and end of the
+    // source code to the interpreter?
     // NOTE reuse Literal becuase it contains the literal values...
     pub fn evaluate(&self, expr: Expr) -> Literal {
         match expr {
