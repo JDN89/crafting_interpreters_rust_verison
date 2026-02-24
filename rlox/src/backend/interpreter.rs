@@ -1,6 +1,9 @@
 use core::panic;
 
-use crate::frontend::ast::{Expr, Literal, Operator};
+use crate::{
+    backend::value::{RuntimeError, Value},
+    frontend::ast::{Expr, Literal, Operator},
+};
 
 pub struct Interpreter {}
 
@@ -14,16 +17,16 @@ impl Interpreter {
     // NOTE maybe compute literal in the itnerpreter face and just pass the start and end of the
     // source code to the interpreter?
     // NOTE reuse Literal becuase it contains the literal values...
-    pub fn evaluate(&self, expr: Expr) -> Literal {
+    pub fn evaluate(&self, expr: Expr) -> Result<Value, RuntimeError> {
         match expr {
             Expr::Binary { left, op, right } => self.evaluate_binary_expression(*left, op, *right),
             Expr::Assign { op, value } => todo!(),
-            Expr::Literal { value } => value,
+            Expr::Literal { value } => Ok(Value::from(value)),
             Expr::Unary { op, right } => {
-                let right = self.evaluate(*right);
+                let right = self.evaluate(*right)?;
                 match op {
-                    Operator::Plus => right,
-                    Operator::Minus => negate_literal(right),
+                    Operator::Plus => Ok(right),
+                    Operator::Minus => negate_value(right),
                     Operator::Bang => is_truthy(right),
                     _ => panic!("Unary should not be possible with the operator types *, / , ="),
                 }
@@ -34,9 +37,14 @@ impl Interpreter {
         // println!("{:?}", expr);
     }
 
-    fn evaluate_binary_expression(&self, left: Expr, op: Operator, right: Expr) -> Literal {
-        let left = self.evaluate(left);
-        let right = self.evaluate(right);
+    fn evaluate_binary_expression(
+        &self,
+        left: Expr,
+        op: Operator,
+        right: Expr,
+    ) -> Result<Value, RuntimeError> {
+        let left = self.evaluate(left)?;
+        let right = self.evaluate(right)?;
         match op {
             Operator::Plus => addition(left, right),
             Operator::Minus => subtraction(left, right),
@@ -50,26 +58,17 @@ impl Interpreter {
             Operator::GreaterEqual => greater_then_or_equal(left, right),
             Operator::Less => less(left, right),
             Operator::LessEqual => less_then_or_equal(left, right),
-            Operator::BangEqual => is_bang_equal(left, right),
-            Operator::EqualEqual => is_equal(left, right),
+            Operator::EqualEqual => Literal::Boolean(is_equal(left, right)),
+            Operator::BangEqual => Literal::Boolean(!is_equal(left, right)),
         }
     }
 }
 
-// TODO : rewrite this week. Not clear at all
-fn is_bang_equal(left: Literal, right: Literal) -> Literal {
+fn is_equal(left: Literal, right: Literal) -> bool {
     match (left, right) {
-        (Literal::Nil, Literal::Nil) => Literal::Boolean(false),
-        (Literal::Nil, _) => Literal::Boolean(true),
-        (a, b) => Literal::Boolean(a != b),
-    }
-}
-
-fn is_equal(left: Literal, right: Literal) -> Literal {
-    match (left, right) {
-        (Literal::Nil, Literal::Nil) => Literal::Boolean(true),
-        (Literal::Nil, _) => Literal::Boolean(false),
-        (a, b) => Literal::Boolean(a == b),
+        (Literal::Nil, Literal::Nil) => true,
+        (Literal::Nil, _) => false,
+        (a, b) => a == b,
     }
 }
 
@@ -99,11 +98,14 @@ fn less(left: Literal, right: Literal) -> Literal {
     }
 }
 
-fn addition(left: Literal, right: Literal) -> Literal {
+// TODO Return a RuntimeError
+fn addition(left: Value, right: Value) -> Result<Value, RuntimeError> {
     match (left, right) {
-        (Literal::Float(l), Literal::Float(r)) => Literal::Float(l + r),
-        (Literal::Str(l), Literal::Str(r)) => Literal::Str(l + &r),
-        _ => panic!("can subtract non-numbers!"),
+        (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l + r)),
+        (Value::Str(l), Value::Str(r)) => Ok(Value::Str(l + &r)),
+        _ => Err(RuntimeError::new(
+            "Operands must be two numbers or two strings.",
+        )),
     }
 }
 fn subtraction(left: Literal, right: Literal) -> Literal {
@@ -118,24 +120,24 @@ fn division(left: Literal, right: Literal) -> Literal {
         _ => panic!("can subtract non-numbers!"),
     }
 }
-fn multiplication(left: Literal, right: Literal) -> Literal {
+fn multiplication(left: Value, right: Value) -> Result<Value, RuntimeError> {
     match (left, right) {
-        (Literal::Float(l), Literal::Float(r)) => Literal::Float(l * r),
-        _ => panic!("can subtract non-numbers!"),
+        (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l * r)),
+        _ => Err(RuntimeError::new("can subtract non-numbers!")),
     }
 }
 
-fn is_truthy(literal: Literal) -> Literal {
-    match literal {
-        Literal::Boolean(_) => literal,
-        Literal::Nil => Literal::Boolean(false),
-        _ => Literal::Boolean(true),
+fn is_truthy(value: Value) -> Value {
+    match value {
+        Value::Boolean(_) => Value::from(value),
+        Value::Nil => Value::Boolean(false),
+        _ => Value::Boolean(true),
     }
 }
 
-fn negate_literal(lit: Literal) -> Literal {
-    match lit {
-        Literal::Float(f) => Literal::Float(-f),
-        _ => panic!("Unary applied to a non-number"),
+fn negate_value(value: Value) -> Result<Value, RuntimeError> {
+    match value {
+        Value::Float(f) => Ok(Value::Float(-f)),
+        _ => Err(RuntimeError::new("Unary applied to a non-number")),
     }
 }

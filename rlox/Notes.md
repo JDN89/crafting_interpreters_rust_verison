@@ -1,11 +1,12 @@
 # TODO
 
-- [ ] fix block comment lexing
 - [ ] run test er push in github?
-- [ ] remove Literal from token. Just keep the lexeme and token type for now
 
 ## Nice to have
 
+- [ ] create runtime error and report in in the main class, or print the result. Like this the Repl keeps running
+  - [ ] finish refactoring the interpreter
+  - [ ] Return Value, RuntimeError and replace Literal wit Value
 - [ ] decend error reporter. See chapter 4.1.1
 - [ ] Arana alloc
   - [ ] push Expr on the arena and store the index of the location in the arena in the AST
@@ -15,6 +16,12 @@
 - [ ] Struct of Arrays instead of Array of struct
 
 ## Notes
+
+## Chapter 7 Evaluating expressions
+
+Ik was de Literal van de ast aan het hergebruiken voor het wrappen van de waarde van de gevaleerde expressie. Dit zou vroeg of later problemen gegeven hebben door de tight coupling. Indien ik de Ast node, of de runtime value zou moeten extenden zou ik vroeg of laat problemen gehad hebben.
+
+## parser?
 
 Een **lexeme** is gewoon een groep karakters uit de source code die in de context van de taal iets betekenen, maar op zichzelf is het maar een stukje tekst.
 
