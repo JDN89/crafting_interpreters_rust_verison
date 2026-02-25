@@ -8,14 +8,9 @@ use std::path::Path;
 use anyhow::Context;
 use anyhow::Result;
 use anyhow::bail;
+use rlox::run;
 
 // use crate::frontend::lexer;
-use crate::backend::interpreter::Interpreter;
-use crate::frontend::lexer::Lexer;
-use crate::frontend::parser::Parser;
-
-mod backend;
-mod frontend;
 
 // Custom error reporting helper
 // fn error(jline: usize, message: &strj) -> anyhow::Error {
@@ -51,25 +46,9 @@ fn run_prompt() -> Result<()> {
         }
 
         let input = input.trim_end();
-        run(input)?
+        run(input)?;
     }
 
-    Ok(())
-}
-
-fn run(source: &str) -> Result<()> {
-    let lexer = Lexer::new(source);
-    // NOTE: pass ownership of the tokens from the lexer to the parser
-    let tokens = lexer.scan_tokens()?;
-    let mut parser = Parser::new(tokens);
-    // TODO: catch the error and maybe report it?
-    // look at the panic mode impl and see how to handle this here
-    let expr = parser.parse().context("Parser error: ")?;
-    let interpreter = Interpreter::new();
-    let result = interpreter.evaluate(expr).context("Runtime error: ")?;
-    println!("{}", result);
-
-    // lexer::scan(source);
     Ok(())
 }
 
