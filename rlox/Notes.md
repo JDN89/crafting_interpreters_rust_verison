@@ -4,6 +4,7 @@
 
 ## Nice to have
 
+- [ ] remove RuntimeError and replace whith anyhow error
 - [ ] create runtime error and report in in the main class, or print the result. Like this the Repl keeps running
   - [ ] finish refactoring the interpreter
   - [ ] Return Value, RuntimeError and replace Literal wit Value
@@ -18,6 +19,12 @@
 ## Notes
 
 ## Chapter 7 Evaluating expressions
+
+I started using typed errors for the interpreting fase and I am using Anyhow general errors for the parser fase. This has become a mess. Use one or the other but not both styles, Seeing that this is just practice. Use Anyhow and add context where needed.
+
+```rust
+.context("bla bla {}")?
+```
 
 Ik was de Literal van de ast aan het hergebruiken voor het wrappen van de waarde van de gevaleerde expressie. Dit zou vroeg of later problemen gegeven hebben door de tight coupling. Indien ik de Ast node, of de runtime value zou moeten extenden zou ik vroeg of laat problemen gehad hebben.
 

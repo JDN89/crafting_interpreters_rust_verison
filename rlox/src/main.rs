@@ -1,6 +1,8 @@
 use std::env;
 use std::fs;
 use std::io;
+use std::io::Write;
+use std::io::stdout;
 use std::path::Path;
 
 use anyhow::Context;
@@ -36,6 +38,11 @@ fn run_prompt() -> Result<()> {
     println!("Running prompt");
     let mut input = String::new();
     loop {
+        print!(">  ");
+        stdout().flush()?;
+
+        // read_line() appends to input
+        input.clear();
         let bytes_read = io::stdin()
             .read_line(&mut input)
             .context("Error readin bytes from stdin")?;
@@ -57,13 +64,10 @@ fn run(source: &str) -> Result<()> {
     let mut parser = Parser::new(tokens);
     // TODO: catch the error and maybe report it?
     // look at the panic mode impl and see how to handle this here
-    let expr = parser.parse();
+    let expr = parser.parse().context("Parser error: ")?;
     let interpreter = Interpreter::new();
-
-    match expr {
-        Ok(ex) => println!("{}", interpreter.evaluate(ex)),
-        Err(err) => println!("{:?}", err),
-    }
+    let result = interpreter.evaluate(expr).context("Runtime error: ")?;
+    println!("{}", result);
 
     // lexer::scan(source);
     Ok(())

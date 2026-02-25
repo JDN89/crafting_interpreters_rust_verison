@@ -2,7 +2,7 @@ use core::panic;
 
 use crate::{
     backend::value::{RuntimeError, Value},
-    frontend::ast::{Expr, Literal, Operator},
+    frontend::ast::{Expr, Operator},
 };
 
 pub struct Interpreter {}
@@ -13,10 +13,6 @@ impl Interpreter {
         Interpreter {}
     }
 
-    // TODO: replace panic once done
-    // NOTE maybe compute literal in the itnerpreter face and just pass the start and end of the
-    // source code to the interpreter?
-    // NOTE reuse Literal becuase it contains the literal values...
     pub fn evaluate(&self, expr: Expr) -> Result<Value, RuntimeError> {
         match expr {
             Expr::Binary { left, op, right } => self.evaluate_binary_expression(*left, op, *right),
@@ -27,7 +23,7 @@ impl Interpreter {
                 match op {
                     Operator::Plus => Ok(right),
                     Operator::Minus => negate_value(right),
-                    Operator::Bang => is_truthy(right),
+                    Operator::Bang => Ok(is_truthy(right)),
                     _ => panic!("Unary should not be possible with the operator types *, / , ="),
                 }
             }
@@ -50,51 +46,61 @@ impl Interpreter {
             Operator::Minus => subtraction(left, right),
             Operator::Star => multiplication(left, right),
             Operator::Slash => division(left, right),
-            Operator::Equals => {
-                panic!("'=' should not appear as the operator in a binary expression")
-            }
-            Operator::Bang => panic!("'!' should no appear is the operator in a binary expression"),
+            Operator::Equals => Err(RuntimeError::new(
+                "'=' should not appear as an operator in a binary expression",
+            )),
+            Operator::Bang => Err(RuntimeError::new(
+                "'!' should no appear is the operator in a binary expression",
+            )),
             Operator::Greater => greater(left, right),
             Operator::GreaterEqual => greater_then_or_equal(left, right),
             Operator::Less => less(left, right),
             Operator::LessEqual => less_then_or_equal(left, right),
-            Operator::EqualEqual => Literal::Boolean(is_equal(left, right)),
-            Operator::BangEqual => Literal::Boolean(!is_equal(left, right)),
+            Operator::EqualEqual => Ok(Value::Boolean(is_equal(left, right))),
+            Operator::BangEqual => Ok(Value::Boolean(!is_equal(left, right))),
         }
     }
 }
 
-fn is_equal(left: Literal, right: Literal) -> bool {
+fn is_equal(left: Value, right: Value) -> bool {
     match (left, right) {
-        (Literal::Nil, Literal::Nil) => true,
-        (Literal::Nil, _) => false,
+        (Value::Nil, Value::Nil) => true,
+        (Value::Nil, _) => false,
         (a, b) => a == b,
     }
 }
 
-fn greater_then_or_equal(left: Literal, right: Literal) -> Literal {
+fn greater_then_or_equal(left: Value, right: Value) -> Result<Value, RuntimeError> {
     match (left, right) {
-        (Literal::Float(l), Literal::Float(r)) => Literal::Boolean(l >= r),
-        _ => panic!("can't compare greater than or equal for non-numbers!"),
+        (Value::Float(l), Value::Float(r)) => Ok(Value::Boolean(l >= r)),
+        _ => Err(RuntimeError::new(
+            "can't compare greater than or equal for non-numbers!",
+        )),
     }
 }
-fn less_then_or_equal(left: Literal, right: Literal) -> Literal {
+fn less_then_or_equal(left: Value, right: Value) -> Result<Value, RuntimeError> {
     match (left, right) {
-        (Literal::Float(l), Literal::Float(r)) => Literal::Boolean(l <= r),
-        _ => panic!("can't compare lesser than or equal for non-numbers!"),
+        (Value::Float(l), Value::Float(r)) => Ok(Value::Boolean(l <= r)),
+        _ => Err(RuntimeError::new(
+            "can't compare lesser than or equal for non-numbers!",
+        )),
     }
 }
 
-fn greater(left: Literal, right: Literal) -> Literal {
+fn greater(left: Value, right: Value) -> Result<Value, RuntimeError> {
     match (left, right) {
-        (Literal::Float(l), Literal::Float(r)) => Literal::Boolean(l > r),
-        _ => panic!("can't compare greater than for non-numbers!"),
+        (Value::Float(l), Value::Float(r)) => Ok(Value::Boolean(l > r)),
+        _ => Err(RuntimeError::new(
+            "can't compare greater than for non-numbers!",
+        )),
     }
 }
-fn less(left: Literal, right: Literal) -> Literal {
+fn less(left: Value, right: Value) -> Result<Value, RuntimeError> {
     match (left, right) {
-        (Literal::Float(l), Literal::Float(r)) => Literal::Boolean(l < r),
-        _ => panic!("can't compare less than for non-numbers!"),
+        (Value::Float(l), Value::Float(r)) => Ok(Value::Boolean(l < r)),
+        _ => Err(RuntimeError::new(
+            "can't compare less than for non-numbers!",
+        )),
     }
 }
 
@@ -108,16 +114,16 @@ fn addition(left: Value, right: Value) -> Result<Value, RuntimeError> {
         )),
     }
 }
-fn subtraction(left: Literal, right: Literal) -> Literal {
+fn subtraction(left: Value, right: Value) -> Result<Value, RuntimeError> {
     match (left, right) {
-        (Literal::Float(l), Literal::Float(r)) => Literal::Float(l - r),
-        _ => panic!("can subtract non-numbers!"),
+        (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l - r)),
+        _ => Err(RuntimeError::new("can subtract non-numbers!")),
     }
 }
-fn division(left: Literal, right: Literal) -> Literal {
+fn division(left: Value, right: Value) -> Result<Value, RuntimeError> {
     match (left, right) {
-        (Literal::Float(l), Literal::Float(r)) => Literal::Float(l / r),
-        _ => panic!("can subtract non-numbers!"),
+        (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l / r)),
+        _ => Err(RuntimeError::new("can subtract non-numbers!")),
     }
 }
 fn multiplication(left: Value, right: Value) -> Result<Value, RuntimeError> {
