@@ -46,7 +46,9 @@ fn run_prompt() -> Result<()> {
         }
 
         let input = input.trim_end();
-        run(input)?;
+        if let Err(e) = run(input) {
+            eprintln!("{:#}", e);
+        }
     }
 
     Ok(())

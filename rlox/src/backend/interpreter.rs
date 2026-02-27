@@ -1,7 +1,10 @@
 use core::panic;
 
+use anyhow::Ok;
+use anyhow::Result;
+
 use crate::{
-    backend::value::{RuntimeError, Value},
+    backend::value::Value,
     frontend::ast::{Expr, Operator},
 };
 
@@ -13,7 +16,7 @@ impl Interpreter {
         Interpreter {}
     }
 
-    pub fn evaluate(&self, expr: Expr) -> Result<Value, RuntimeError> {
+    pub fn evaluate(&self, expr: Expr) -> Result<Value> {
         match expr {
             Expr::Binary { left, op, right } => self.evaluate_binary_expression(*left, op, *right),
             Expr::Assign { op, value } => todo!(),
@@ -33,12 +36,7 @@ impl Interpreter {
         // println!("{:?}", expr);
     }
 
-    fn evaluate_binary_expression(
-        &self,
-        left: Expr,
-        op: Operator,
-        right: Expr,
-    ) -> Result<Value, RuntimeError> {
+    fn evaluate_binary_expression(&self, left: Expr, op: Operator, right: Expr) -> Result<Value> {
         let left = self.evaluate(left)?;
         let right = self.evaluate(right)?;
         match op {
@@ -46,12 +44,12 @@ impl Interpreter {
             Operator::Minus => subtraction(left, right),
             Operator::Star => multiplication(left, right),
             Operator::Slash => division(left, right),
-            Operator::Equal => Err(RuntimeError::new(
-                "'=' should not appear as an operator in a binary expression",
-            )),
-            Operator::Bang => Err(RuntimeError::new(
-                "'!' should no appear is the operator in a binary expression",
-            )),
+            Operator::Equal => {
+                anyhow::bail!("'=' should not appear as an operator in a binary expression",)
+            }
+            Operator::Bang => {
+                anyhow::bail!("'!' should no appear is the operator in a binary expression",)
+            }
             Operator::Greater => greater(left, right),
             Operator::GreaterEqual => greater_then_or_equal(left, right),
             Operator::Less => less(left, right),
@@ -59,6 +57,12 @@ impl Interpreter {
             Operator::EqualEqual => Ok(Value::Boolean(is_equal(left, right))),
             Operator::BangEqual => Ok(Value::Boolean(!is_equal(left, right))),
         }
+    }
+}
+
+impl Default for Interpreter {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -70,66 +74,56 @@ fn is_equal(left: Value, right: Value) -> bool {
     }
 }
 
-fn greater_then_or_equal(left: Value, right: Value) -> Result<Value, RuntimeError> {
+fn greater_then_or_equal(left: Value, right: Value) -> Result<Value> {
     match (left, right) {
         (Value::Float(l), Value::Float(r)) => Ok(Value::Boolean(l >= r)),
-        _ => Err(RuntimeError::new(
-            "can't compare greater than or equal for non-numbers!",
-        )),
+        _ => anyhow::bail!("can't compare greater than or equal for non-numbers!",),
     }
 }
-fn less_then_or_equal(left: Value, right: Value) -> Result<Value, RuntimeError> {
+fn less_then_or_equal(left: Value, right: Value) -> Result<Value> {
     match (left, right) {
         (Value::Float(l), Value::Float(r)) => Ok(Value::Boolean(l <= r)),
-        _ => Err(RuntimeError::new(
-            "can't compare lesser than or equal for non-numbers!",
-        )),
+        _ => anyhow::bail!("can't compare lesser than or equal for non-numbers!",),
     }
 }
 
-fn greater(left: Value, right: Value) -> Result<Value, RuntimeError> {
+fn greater(left: Value, right: Value) -> Result<Value> {
     match (left, right) {
         (Value::Float(l), Value::Float(r)) => Ok(Value::Boolean(l > r)),
-        _ => Err(RuntimeError::new(
-            "can't compare greater than for non-numbers!",
-        )),
+        _ => anyhow::bail!("can't compare greater than for non-numbers!",),
     }
 }
-fn less(left: Value, right: Value) -> Result<Value, RuntimeError> {
+fn less(left: Value, right: Value) -> Result<Value> {
     match (left, right) {
         (Value::Float(l), Value::Float(r)) => Ok(Value::Boolean(l < r)),
-        _ => Err(RuntimeError::new(
-            "can't compare less than for non-numbers!",
-        )),
+        _ => anyhow::bail!("can't compare less than for non-numbers!",),
     }
 }
 
-// TODO Return a RuntimeError
-fn addition(left: Value, right: Value) -> Result<Value, RuntimeError> {
+// TODO Return a ()
+fn addition(left: Value, right: Value) -> Result<Value> {
     match (left, right) {
         (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l + r)),
         (Value::Str(l), Value::Str(r)) => Ok(Value::Str(l + &r)),
-        _ => Err(RuntimeError::new(
-            "Operands must be two numbers or two strings.",
-        )),
+        _ => anyhow::bail!("Operands must be two numbers or two strings.",),
     }
 }
-fn subtraction(left: Value, right: Value) -> Result<Value, RuntimeError> {
+fn subtraction(left: Value, right: Value) -> Result<Value> {
     match (left, right) {
         (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l - r)),
-        _ => Err(RuntimeError::new("can subtract non-numbers!")),
+        _ => anyhow::bail!("can subtract non-numbers!"),
     }
 }
-fn division(left: Value, right: Value) -> Result<Value, RuntimeError> {
+fn division(left: Value, right: Value) -> Result<Value> {
     match (left, right) {
         (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l / r)),
-        _ => Err(RuntimeError::new("can subtract non-numbers!")),
+        _ => anyhow::bail!("can subtract non-numbers!"),
     }
 }
-fn multiplication(left: Value, right: Value) -> Result<Value, RuntimeError> {
+fn multiplication(left: Value, right: Value) -> Result<Value> {
     match (left, right) {
         (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l * r)),
-        _ => Err(RuntimeError::new("can subtract non-numbers!")),
+        _ => anyhow::bail!("can subtract non-numbers!"),
     }
 }
 
@@ -141,9 +135,9 @@ fn is_truthy(value: Value) -> Value {
     }
 }
 
-fn negate_value(value: Value) -> Result<Value, RuntimeError> {
+fn negate_value(value: Value) -> Result<Value> {
     match value {
         Value::Float(f) => Ok(Value::Float(-f)),
-        _ => Err(RuntimeError::new("Unary applied to a non-number")),
+        _ => anyhow::bail!("Unary applied to a non-number"),
     }
 }

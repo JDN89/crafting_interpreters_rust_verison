@@ -13,6 +13,7 @@ pub fn run(source: &str) -> Result<String> {
     let expr = parser.parse().context("Parser error: ")?;
     let interpreter = Interpreter::new();
     let result = interpreter.evaluate(expr).context("Runtime error: ")?;
+    println!("{}", result);
 
     Ok(result.to_string())
 }
