@@ -46,7 +46,7 @@ impl Interpreter {
             Operator::Minus => subtraction(left, right),
             Operator::Star => multiplication(left, right),
             Operator::Slash => division(left, right),
-            Operator::Equals => Err(RuntimeError::new(
+            Operator::Equal => Err(RuntimeError::new(
                 "'=' should not appear as an operator in a binary expression",
             )),
             Operator::Bang => Err(RuntimeError::new(
