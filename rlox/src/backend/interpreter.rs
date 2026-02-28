@@ -3,6 +3,7 @@ use core::panic;
 use anyhow::Ok;
 use anyhow::Result;
 
+use crate::frontend::ast::Stmt;
 use crate::{
     backend::value::Value,
     frontend::ast::{Expr, Operator},
@@ -16,7 +17,21 @@ impl Interpreter {
         Interpreter {}
     }
 
-    pub fn evaluate(&self, expr: Expr) -> Result<Value> {
+    pub fn interpret(&self, statements: Vec<Stmt>) -> Result<()> {
+        for stmt in statements {
+            match stmt {
+                Stmt::ExpressionStmt { expr } => self.evaluate(expr)?,
+                Stmt::PrintStmt { expr } => {
+                    let result = self.evaluate(expr)?;
+                    println!("{}", result);
+                    result
+                }
+            };
+        }
+        Ok(())
+    }
+
+    fn evaluate(&self, expr: Expr) -> Result<Value> {
         match expr {
             Expr::Binary { left, op, right } => self.evaluate_binary_expression(*left, op, *right),
             Expr::Assign { op, value } => todo!(),

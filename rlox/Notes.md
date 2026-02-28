@@ -4,10 +4,7 @@
 
 ## Nice to have
 
-- [ ] remove RuntimeError and replace whith anyhow error
-- [ ] create runtime error and report in in the main class, or print the result. Like this the Repl keeps running
-  - [ ] finish refactoring the interpreter
-  - [ ] Return Value, RuntimeError and replace Literal wit Value
+- [ ] finish statement chapter and fix integration tests
 - [ ] decend error reporter. See chapter 4.1.1
 - [ ] Arana alloc
   - [ ] push Expr on the arena and store the index of the location in the arena in the AST
