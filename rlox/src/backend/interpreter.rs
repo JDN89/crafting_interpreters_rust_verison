@@ -26,6 +26,7 @@ impl Interpreter {
                     println!("{}", result);
                     result
                 }
+                Stmt::Var { name, initializer } => todo!(),
             };
         }
         Ok(())

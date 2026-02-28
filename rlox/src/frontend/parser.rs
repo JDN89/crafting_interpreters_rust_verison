@@ -209,7 +209,7 @@ impl Parser {
     pub fn parse(&mut self) -> Result<Vec<Stmt>> {
         let mut statements: Vec<Stmt> = Vec::new();
         while !self.is_at_end() {
-            statements.push(self.parse_statement()?);
+            statements.push(self.parse_declaration()?);
         }
 
         Ok(statements)
@@ -223,6 +223,15 @@ impl Parser {
         }
     }
 
+    // TODO: voorzie error recovery -> consume all tokens until next statement declaration
+    fn parse_declaration(&mut self) -> Result<Stmt> {
+        if self.match_ttype(vec![TokenType::Var]) {
+            Ok(self.parse_var_declaration()?)
+        } else {
+            self.parse_statement()
+        }
+    }
+
     fn parse_print_statement(&mut self) -> Result<Stmt> {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
@@ -233,5 +242,22 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
         Ok(Stmt::ExpressionStmt { expr })
+    }
+
+    fn parse_var_declaration(&mut self) -> Result<Stmt> {
+        self.consume(TokenType::Identifier, "Expect variable name")?;
+        let name = self.previous().lexeme.clone();
+
+        let initializer = if self.match_ttype(vec![TokenType::Equal]) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+
+        self.consume(
+            TokenType::Semicolon,
+            "Expect ';' after variable declaration.",
+        )?;
+        Ok(Stmt::Var { name, initializer })
     }
 }

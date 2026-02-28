@@ -150,6 +150,15 @@ impl fmt::Display for Expr {
 }
 
 pub enum Stmt {
-    ExpressionStmt { expr: Expr },
-    PrintStmt { expr: Expr },
+    ExpressionStmt {
+        expr: Expr,
+    },
+    PrintStmt {
+        expr: Expr,
+    },
+    // NOTE: variable declaration laten normaal gezien optional initializers to. var halo;
+    Var {
+        name: String,
+        initializer: Option<Expr>,
+    },
 }
