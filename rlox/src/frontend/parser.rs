@@ -6,6 +6,7 @@ use anyhow::Result;
 use anyhow::anyhow;
 
 use crate::frontend::ast::Literal;
+use crate::frontend::ast::Stmt;
 use crate::frontend::ast::{Expr, Operator};
 use crate::frontend::token::{Token, TokenType};
 
@@ -205,7 +206,32 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Expr> {
-        self.expression()
+    pub fn parse(&mut self) -> Result<Vec<Stmt>> {
+        let mut statements: Vec<Stmt> = Vec::new();
+        while !self.is_at_end() {
+            statements.push(self.parse_statement()?);
+        }
+
+        Ok(statements)
+    }
+
+    fn parse_statement(&mut self) -> Result<Stmt> {
+        if self.match_ttype(vec![TokenType::Print]) {
+            self.parse_print_statement()
+        } else {
+            self.parse_expression_statement()
+        }
+    }
+
+    fn parse_print_statement(&mut self) -> Result<Stmt> {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expect ';' after value.");
+        Ok(Stmt::PrintStmt { expr })
+    }
+
+    fn parse_expression_statement(&mut self) -> Result<Stmt> {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expect ';' after value.");
+        Ok(Stmt::ExpressionStmt { expr })
     }
 }

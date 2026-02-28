@@ -47,6 +47,7 @@ fn run_prompt() -> Result<()> {
 
         let input = input.trim_end();
         if let Err(e) = run(input) {
+            // https://doc.rust-lang.org/std/fmt/struct.Formatter.html#method.alternate
             eprintln!("{:#}", e);
         }
     }

@@ -148,3 +148,8 @@ impl fmt::Display for Expr {
         }
     }
 }
+
+pub enum Stmt {
+    ExpressionStmt { expr: Expr },
+    PrintStmt { expr: Expr },
+}
