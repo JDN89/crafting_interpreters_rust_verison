@@ -5,7 +5,7 @@ use crate::frontend::ast::Literal;
 // The evaluated Lox value. I was first reusing the Ast.Literal, but this would cause troubles if I
 // have to exten my runtime values,...
 #[derive(Debug, Clone, PartialEq)]
-pub enum Value {
+pub enum LoxValue {
     Str(String),
     Boolean(bool),
     Float(f64),
@@ -13,23 +13,23 @@ pub enum Value {
 }
 
 // https://doc.rust-lang.org/std/convert/trait.From.html
-impl From<Literal> for Value {
+impl From<Literal> for LoxValue {
     fn from(value: Literal) -> Self {
         match value {
-            Literal::Str(s) => Value::Str(s),
-            Literal::Boolean(b) => Value::Boolean(b),
-            Literal::Float(n) => Value::Float(n),
-            Literal::Nil => Value::Nil,
+            Literal::Str(s) => LoxValue::Str(s),
+            Literal::Boolean(b) => LoxValue::Boolean(b),
+            Literal::Float(n) => LoxValue::Float(n),
+            Literal::Nil => LoxValue::Nil,
         }
     }
 }
-impl fmt::Display for Value {
+impl fmt::Display for LoxValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Value::Str(s) => write!(f, "{s}"),
-            Value::Boolean(b) => write!(f, "{b}"),
-            Value::Float(n) => write!(f, "{n}"),
-            Value::Nil => write!(f, "nill"),
+            LoxValue::Str(s) => write!(f, "{s}"),
+            LoxValue::Boolean(b) => write!(f, "{b}"),
+            LoxValue::Float(n) => write!(f, "{n}"),
+            LoxValue::Nil => write!(f, "nill"),
         }
     }
 }

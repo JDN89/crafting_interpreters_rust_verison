@@ -3,9 +3,10 @@ use core::panic;
 use anyhow::Ok;
 use anyhow::Result;
 
+use crate::backend::environment::Environment;
 use crate::frontend::ast::Stmt;
 use crate::{
-    backend::value::Value,
+    backend::value::LoxValue,
     frontend::ast::{Expr, Operator},
 };
 
@@ -18,25 +19,36 @@ impl Interpreter {
     }
 
     pub fn interpret(&self, statements: Vec<Stmt>) -> Result<()> {
+        let mut environment = Environment::default();
         for stmt in statements {
             match stmt {
-                Stmt::ExpressionStmt { expr } => self.evaluate(expr)?,
+                Stmt::ExpressionStmt { expr } => {
+                    // Discard result and propagate side effect
+                    let _ = self.evaluate(expr)?;
+                }
+
                 Stmt::PrintStmt { expr } => {
                     let result = self.evaluate(expr)?;
+                    // discard result
                     println!("{}", result);
-                    result
                 }
-                Stmt::Var { name, initializer } => todo!(),
+                Stmt::Var { name, initializer } => {
+                    let Some(expr) = initializer else {
+                        anyhow::bail!("Cant evaluate a variable without an assigned value!");
+                    };
+                    let value = self.evaluate(expr)?;
+                    environment.define(name, value);
+                }
             };
         }
         Ok(())
     }
 
-    fn evaluate(&self, expr: Expr) -> Result<Value> {
+    fn evaluate(&self, expr: Expr) -> Result<LoxValue> {
         match expr {
             Expr::Binary { left, op, right } => self.evaluate_binary_expression(*left, op, *right),
             Expr::Assign { op, value } => todo!(),
-            Expr::Literal { value } => Ok(Value::from(value)),
+            Expr::Literal { value } => Ok(LoxValue::from(value)),
             Expr::Unary { op, right } => {
                 let right = self.evaluate(*right)?;
                 match op {
@@ -46,13 +58,19 @@ impl Interpreter {
                     _ => panic!("Unary should not be possible with the operator types *, / , ="),
                 }
             }
+            //TODO pass environment and get the variable value from the enviromment
             Expr::Variable { name } => todo!(),
             Expr::Grouping { value } => self.evaluate(*value),
         }
         // println!("{:?}", expr);
     }
 
-    fn evaluate_binary_expression(&self, left: Expr, op: Operator, right: Expr) -> Result<Value> {
+    fn evaluate_binary_expression(
+        &self,
+        left: Expr,
+        op: Operator,
+        right: Expr,
+    ) -> Result<LoxValue> {
         let left = self.evaluate(left)?;
         let right = self.evaluate(right)?;
         match op {
@@ -70,8 +88,8 @@ impl Interpreter {
             Operator::GreaterEqual => greater_then_or_equal(left, right),
             Operator::Less => less(left, right),
             Operator::LessEqual => less_then_or_equal(left, right),
-            Operator::EqualEqual => Ok(Value::Boolean(is_equal(left, right))),
-            Operator::BangEqual => Ok(Value::Boolean(!is_equal(left, right))),
+            Operator::EqualEqual => Ok(LoxValue::Boolean(is_equal(left, right))),
+            Operator::BangEqual => Ok(LoxValue::Boolean(!is_equal(left, right))),
         }
     }
 }
@@ -82,78 +100,78 @@ impl Default for Interpreter {
     }
 }
 
-fn is_equal(left: Value, right: Value) -> bool {
+fn is_equal(left: LoxValue, right: LoxValue) -> bool {
     match (left, right) {
-        (Value::Nil, Value::Nil) => true,
-        (Value::Nil, _) => false,
+        (LoxValue::Nil, LoxValue::Nil) => true,
+        (LoxValue::Nil, _) => false,
         (a, b) => a == b,
     }
 }
 
-fn greater_then_or_equal(left: Value, right: Value) -> Result<Value> {
+fn greater_then_or_equal(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
-        (Value::Float(l), Value::Float(r)) => Ok(Value::Boolean(l >= r)),
+        (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Boolean(l >= r)),
         _ => anyhow::bail!("can't compare greater than or equal for non-numbers!",),
     }
 }
-fn less_then_or_equal(left: Value, right: Value) -> Result<Value> {
+fn less_then_or_equal(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
-        (Value::Float(l), Value::Float(r)) => Ok(Value::Boolean(l <= r)),
+        (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Boolean(l <= r)),
         _ => anyhow::bail!("can't compare lesser than or equal for non-numbers!",),
     }
 }
 
-fn greater(left: Value, right: Value) -> Result<Value> {
+fn greater(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
-        (Value::Float(l), Value::Float(r)) => Ok(Value::Boolean(l > r)),
+        (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Boolean(l > r)),
         _ => anyhow::bail!("can't compare greater than for non-numbers!",),
     }
 }
-fn less(left: Value, right: Value) -> Result<Value> {
+fn less(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
-        (Value::Float(l), Value::Float(r)) => Ok(Value::Boolean(l < r)),
+        (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Boolean(l < r)),
         _ => anyhow::bail!("can't compare less than for non-numbers!",),
     }
 }
 
 // TODO Return a ()
-fn addition(left: Value, right: Value) -> Result<Value> {
+fn addition(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
-        (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l + r)),
-        (Value::Str(l), Value::Str(r)) => Ok(Value::Str(l + &r)),
+        (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Float(l + r)),
+        (LoxValue::Str(l), LoxValue::Str(r)) => Ok(LoxValue::Str(l + &r)),
         _ => anyhow::bail!("Operands must be two numbers or two strings.",),
     }
 }
-fn subtraction(left: Value, right: Value) -> Result<Value> {
+fn subtraction(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
-        (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l - r)),
+        (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Float(l - r)),
         _ => anyhow::bail!("can subtract non-numbers!"),
     }
 }
-fn division(left: Value, right: Value) -> Result<Value> {
+fn division(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
-        (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l / r)),
+        (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Float(l / r)),
         _ => anyhow::bail!("can subtract non-numbers!"),
     }
 }
-fn multiplication(left: Value, right: Value) -> Result<Value> {
+fn multiplication(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
-        (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l * r)),
+        (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Float(l * r)),
         _ => anyhow::bail!("can subtract non-numbers!"),
     }
 }
 
-fn is_truthy(value: Value) -> Value {
+fn is_truthy(value: LoxValue) -> LoxValue {
     match value {
-        Value::Boolean(_) => Value::from(value),
-        Value::Nil => Value::Boolean(false),
-        _ => Value::Boolean(true),
+        LoxValue::Boolean(_) => LoxValue::from(value),
+        LoxValue::Nil => LoxValue::Boolean(false),
+        _ => LoxValue::Boolean(true),
     }
 }
 
-fn negate_value(value: Value) -> Result<Value> {
+fn negate_value(value: LoxValue) -> Result<LoxValue> {
     match value {
-        Value::Float(f) => Ok(Value::Float(-f)),
+        LoxValue::Float(f) => Ok(LoxValue::Float(-f)),
         _ => anyhow::bail!("Unary applied to a non-number"),
     }
 }
