@@ -11,7 +11,7 @@ pub fn run(source: &str) -> Result<()> {
     let tokens = lexer.scan_tokens()?;
     let mut parser = Parser::new(tokens);
     let statements = parser.parse().context("Parser error: ")?;
-    let interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::new();
     interpreter
         .interpret(statements)
         .context("Runtime error: ")?;

@@ -10,16 +10,19 @@ use crate::{
     frontend::ast::{Expr, Operator},
 };
 
-pub struct Interpreter {}
+pub struct Interpreter {
+    environment: Environment,
+}
 
 #[allow(dead_code)]
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter {}
+        Interpreter {
+            ..Default::default()
+        }
     }
 
-    pub fn interpret(&self, statements: Vec<Stmt>) -> Result<()> {
-        let mut environment = Environment::default();
+    pub fn interpret(&mut self, statements: Vec<Stmt>) -> Result<()> {
         for stmt in statements {
             match stmt {
                 Stmt::ExpressionStmt { expr } => {
@@ -37,14 +40,14 @@ impl Interpreter {
                         anyhow::bail!("Cant evaluate a variable without an assigned value!");
                     };
                     let value = self.evaluate(expr)?;
-                    environment.define(name, value);
+                    self.environment.define(name, value);
                 }
             };
         }
         Ok(())
     }
 
-    fn evaluate(&self, expr: Expr) -> Result<LoxValue> {
+    fn evaluate(&mut self, expr: Expr) -> Result<LoxValue> {
         match expr {
             Expr::Binary { left, op, right } => self.evaluate_binary_expression(*left, op, *right),
             Expr::Assign { op, value } => todo!(),
@@ -58,15 +61,14 @@ impl Interpreter {
                     _ => panic!("Unary should not be possible with the operator types *, / , ="),
                 }
             }
-            //TODO pass environment and get the variable value from the enviromment
-            Expr::Variable { name } => todo!(),
+            Expr::Variable { name } => self.environment.get(&name),
             Expr::Grouping { value } => self.evaluate(*value),
         }
         // println!("{:?}", expr);
     }
 
     fn evaluate_binary_expression(
-        &self,
+        &mut self,
         left: Expr,
         op: Operator,
         right: Expr,

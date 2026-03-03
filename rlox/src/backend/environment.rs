@@ -25,9 +25,9 @@ impl Environment {
     pub fn define(&mut self, name: String, value: LoxValue) {
         self.values.insert(name, value);
     }
-    pub fn get(&mut self, name: &str) -> Result<&LoxValue> {
+    pub fn get(&self, name: &str) -> Result<LoxValue> {
         if let Some(value) = self.values.get(name) {
-            return Ok(value);
+            return Ok(value.clone());
         }
 
         anyhow::bail!("Undefined variable {}", name);
