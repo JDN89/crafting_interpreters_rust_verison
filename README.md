@@ -45,6 +45,24 @@ cargo test -- --nocapture
 
 ### Debugging with rust-gdb
 
+#### debugging crash
+
+```bash
+rust-gdb target/debug/rlox
+
+```
+
+```bash
+run
+
+```
+
+Print the backtrace
+
+```bash
+bt
+```
+
 ```bash
 cargo test --no-run            # build tests without running
 rust-gdb target/debug/deps/rlox-<hash>  # start debugger

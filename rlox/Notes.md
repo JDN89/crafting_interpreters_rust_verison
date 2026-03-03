@@ -1,5 +1,18 @@
 # TODO
 
+- [ ] fix stackoverflow error
+
+```BASH
+Running prompt
+>   1 > 2
+Parser error: : Expect ';' after value..
+>  1 > 2 ;
+
+thread 'main' (13773) has overflowed its stack
+fatal runtime error: stack overflow, aborting
+[1]    13773 IOT instruction (core dumped)  cargo run
+```
+
 - [ ] run test er push in github?
 
 ## Nice to have

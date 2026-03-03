@@ -14,11 +14,17 @@ pub struct Interpreter {
     environment: Environment,
 }
 
+impl Default for Interpreter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[allow(dead_code)]
 impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
-            ..Default::default()
+            environment: Environment::new(),
         }
     }
 
@@ -93,12 +99,6 @@ impl Interpreter {
             Operator::EqualEqual => Ok(LoxValue::Boolean(is_equal(left, right))),
             Operator::BangEqual => Ok(LoxValue::Boolean(!is_equal(left, right))),
         }
-    }
-}
-
-impl Default for Interpreter {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

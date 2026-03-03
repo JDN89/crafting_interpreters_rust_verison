@@ -9,6 +9,9 @@ use frontend::parser::Parser;
 pub fn run(source: &str) -> Result<()> {
     let lexer = Lexer::new(source);
     let tokens = lexer.scan_tokens()?;
+    // for token in &tokens {
+    //     println!("{}", &token);
+    // }
     let mut parser = Parser::new(tokens);
     let statements = parser.parse().context("Parser error: ")?;
     let mut interpreter = Interpreter::new();
