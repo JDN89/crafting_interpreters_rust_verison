@@ -176,6 +176,12 @@ impl Parser {
                 value: Literal::Str(self.previous().lexeme.clone()),
             });
         }
+        if self.match_ttype(vec![TokenType::Identifier]) {
+            return Ok(Expr::Variable {
+                name: self.previous().lexeme.clone(),
+            });
+        }
+
         if self.match_ttype(vec![TokenType::Number]) {
             return Ok(Expr::Literal {
                 value: Literal::Float(
