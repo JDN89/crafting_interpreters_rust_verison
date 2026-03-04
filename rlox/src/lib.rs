@@ -6,7 +6,7 @@ use backend::interpreter::Interpreter;
 use frontend::lexer::Lexer;
 use frontend::parser::Parser;
 
-pub fn run(source: &str) -> Result<()> {
+pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<()> {
     let lexer = Lexer::new(source);
     let tokens = lexer.scan_tokens()?;
     // for token in &tokens {
@@ -14,7 +14,12 @@ pub fn run(source: &str) -> Result<()> {
     // }
     let mut parser = Parser::new(tokens);
     let statements = parser.parse().context("Parser error: ")?;
-    let mut interpreter = Interpreter::new();
+    //
+    //NOTE ran into a bug where the environemnt inside interpreter got cleared during running of the
+    //repl with each new line. the issues was that run is owning and recreating the environment with
+    //each function call. solution, make run prompt create the interpreter and pass it here. leave here
+    //for now for educational purposes
+    // let mut interpreter = Interpreter::new();
     interpreter
         .interpret(statements)
         .context("Runtime error: ")?;

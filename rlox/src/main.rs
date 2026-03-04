@@ -8,6 +8,7 @@ use std::path::Path;
 use anyhow::Context;
 use anyhow::Result;
 use anyhow::bail;
+use rlox::backend::interpreter::Interpreter;
 use rlox::run;
 
 // use crate::frontend::lexer;
@@ -25,12 +26,14 @@ where
 {
     println!("run file");
     let contents = fs::read_to_string(path).context("Should have been able to read the file")?;
-    run(&contents)?;
+    let mut interpreter = Interpreter::new();
+    run(&contents, &mut interpreter)?;
     Ok(())
 }
 
 fn run_prompt() -> Result<()> {
     println!("Running prompt");
+    let mut interpreter = Interpreter::new();
     let mut input = String::new();
     loop {
         print!(">  ");
@@ -46,7 +49,7 @@ fn run_prompt() -> Result<()> {
         }
 
         let input = input.trim_end();
-        if let Err(e) = run(input) {
+        if let Err(e) = run(input, &mut interpreter) {
             // https://doc.rust-lang.org/std/fmt/struct.Formatter.html#method.alternate
             eprintln!("{:#}", e);
         }
