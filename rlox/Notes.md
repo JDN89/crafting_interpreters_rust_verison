@@ -1,15 +1,5 @@
 # TODO
 
-- [ ] fix runtime error: Undefined variable a
-
-```bash
-Running prompt
->  var a =1;
->  print a;
-Runtime error: : Undefined variable a
->
-```
-
 - [ ] run test er push in github?
 
 ## Nice to have
