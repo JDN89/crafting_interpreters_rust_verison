@@ -56,7 +56,7 @@ impl Interpreter {
     fn evaluate(&mut self, expr: Expr) -> Result<LoxValue> {
         match expr {
             Expr::Binary { left, op, right } => self.evaluate_binary_expression(*left, op, *right),
-            Expr::Assign { op, value } => todo!(),
+            Expr::Assign { name, value } => todo!(),
             Expr::Literal { value } => Ok(LoxValue::from(value)),
             Expr::Unary { op, right } => {
                 let right = self.evaluate(*right)?;

@@ -102,7 +102,7 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<Expr> {
-        self.equality()
+        self.assignment()
     }
 
     fn term(&mut self) -> Result<Expr> {
@@ -265,5 +265,26 @@ impl Parser {
             "Expect ';' after variable declaration.",
         )?;
         Ok(Stmt::Var { name, initializer })
+    }
+
+    /// left side is first parsed as an expression -> should be an Expr::variable (Identifier,
+    /// where we store the value)
+    /// if next token is '=' start parsing assignement expression
+    /// parse right hand side wich should also be an expression
+    fn assignment(&mut self) -> Result<Expr> {
+        let expression = self.equality()?;
+
+        if self.match_ttype(vec![TokenType::Equal]) {
+            let equals = self.previous().clone(); // cloning token is cheap
+            let value = self.assignment()?;
+            if let Expr::Variable { name } = &expression {
+                return Ok(Expr::Assign {
+                    name: name.clone(),
+                    value: Box::new(value),
+                });
+            }
+            anyhow::bail!("Token: {} is an invalid assingment target.", &equals);
+        }
+        Ok(expression)
     }
 }

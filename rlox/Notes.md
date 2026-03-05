@@ -1,5 +1,7 @@
 # TODO
 
+- [ ] https://craftinginterpreters.com/statements-and-state.html#assignment-semantics 8.4.2
+- [ ] test assignemnt
 - [ ] run test er push in github?
 
 ## Nice to have

@@ -15,6 +15,7 @@ pub struct Token {
     pub line: u32,
 }
 
+// TODO remove lexeme (strings are or can be expensive to clone "")
 impl Token {
     pub fn new(ttype: TokenType, lexeme: String, line: u32) -> Token {
         Token {

@@ -101,7 +101,7 @@ pub enum Expr {
         right: Box<Expr>,
     },
     Assign {
-        op: Operator,
+        name: String,
         value: Box<Expr>,
     },
     Literal {
@@ -142,8 +142,8 @@ impl fmt::Display for Expr {
                 write!(f, "{name}")
             }
 
-            Expr::Assign { op, value } => {
-                write!(f, "({} {})", op, value)
+            Expr::Assign { name, value } => {
+                write!(f, "({} {})", name, value)
             }
         }
     }
