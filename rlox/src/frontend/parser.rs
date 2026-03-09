@@ -199,7 +199,11 @@ impl Parser {
                 value: Box::new(expr),
             });
         }
-        Err(anyhow!("Expected expression."))
+
+        Err(anyhow!(
+            "Expected expression. But got token {:?}",
+            self.tokens[self.current]
+        ))
     }
 
     // TODO implement panic mode
@@ -224,6 +228,8 @@ impl Parser {
     fn parse_statement(&mut self) -> Result<Stmt> {
         if self.match_ttype(vec![TokenType::Print]) {
             self.parse_print_statement()
+        } else if self.match_ttype(vec![TokenType::LeftBrace]) {
+            self.parse_block_statement()
         } else {
             self.parse_expression_statement()
         }
@@ -286,5 +292,16 @@ impl Parser {
             anyhow::bail!("Token: {} is an invalid assingment target.", &equals);
         }
         Ok(expression)
+    }
+
+    // BUG: For some reason when we pass at the moment the TokenType RightBrace to
+    // parse_declaration. so the token doesn't
+    fn parse_block_statement(&mut self) -> Result<Stmt> {
+        let mut statements: Vec<Stmt> = Vec::new();
+
+        while !self.check(TokenType::RightBrace) && !self.is_at_end() {
+            statements.push(self.parse_declaration()?)
+        }
+        Ok(Stmt::Block { statements })
     }
 }

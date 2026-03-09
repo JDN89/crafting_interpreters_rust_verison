@@ -161,4 +161,7 @@ pub enum Stmt {
         name: String,
         initializer: Option<Expr>,
     },
+    Block {
+        statements: Vec<Stmt>,
+    },
 }

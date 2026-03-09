@@ -17,6 +17,10 @@
 
 ## Notes
 
+## Chapter 8 Statements
+
+hen a local variable has the same name as a variable in an enclosing scope, it shadows the outer one. Code inside the block can\E2\80\99t see it any more\E2\80\94it is hidden in the \E2\80\9Cshadow\E2\80\9D cast by the inner one\E2\80\94but it\E2\80\99s still there.
+
 ## Chapter 7 Evaluating expressions
 
 I started using typed errors for the interpreting fase and I am using Anyhow general errors for the parser fase. This has become a mess. Use one or the other but not both styles, Seeing that this is just practice. Use Anyhow and add context where needed.
