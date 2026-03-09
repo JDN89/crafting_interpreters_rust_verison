@@ -1,8 +1,11 @@
 use core::panic;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use anyhow::Ok;
 use anyhow::Result;
 
+use crate::backend::environment::Env;
 use crate::backend::environment::Environment;
 use crate::frontend::ast::Stmt;
 use crate::{
@@ -11,7 +14,7 @@ use crate::{
 };
 
 pub struct Interpreter {
-    environment: Environment,
+    environment: Env,
 }
 
 impl Default for Interpreter {
@@ -24,6 +27,7 @@ impl Default for Interpreter {
 impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
+            // NOTE: globals is env that is accessbile for everyone
             environment: Environment::new(),
         }
     }
@@ -35,7 +39,7 @@ impl Interpreter {
                     // Discard result and propagate side effect
                     let _ = self.evaluate(expr)?;
                 }
-
+                // NOTE: for debugging purposes
                 Stmt::PrintStmt { expr } => {
                     let result = self.evaluate(expr)?;
                     // discard result
@@ -46,8 +50,9 @@ impl Interpreter {
                         anyhow::bail!("Cant evaluate a variable without an assigned value!");
                     };
                     let value = self.evaluate(expr)?;
-                    self.environment.define(name, value);
+                    self.environment.borrow_mut().define(name, value);
                 }
+                Stmt::Block { statements } => self.execute_block(statements, Environment::new())?,
             };
         }
         Ok(())
@@ -67,7 +72,7 @@ impl Interpreter {
                     _ => panic!("Unary should not be possible with the operator types *, / , ="),
                 }
             }
-            Expr::Variable { name } => self.environment.get(&name),
+            Expr::Variable { name } => self.environment.borrow().get(&name),
             Expr::Grouping { value } => self.evaluate(*value),
         }
         // println!("{:?}", expr);
@@ -99,6 +104,18 @@ impl Interpreter {
             Operator::EqualEqual => Ok(LoxValue::Boolean(is_equal(left, right))),
             Operator::BangEqual => Ok(LoxValue::Boolean(!is_equal(left, right))),
         }
+    }
+
+    fn execute_block(
+        &mut self,
+        statements: Vec<Stmt>,
+        new: Rc<RefCell<Environment>>,
+    ) -> Result<()> {
+        let previous = self.environment.clone();
+        self.environment = new;
+        self.interpret(statements)?;
+        self.environment = previous;
+        Ok(())
     }
 }
 

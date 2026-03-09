@@ -270,6 +270,7 @@ impl Parser {
             TokenType::Semicolon,
             "Expect ';' after variable declaration.",
         )?;
+
         Ok(Stmt::Var { name, initializer })
     }
 
@@ -294,14 +295,16 @@ impl Parser {
         Ok(expression)
     }
 
-    // BUG: For some reason when we pass at the moment the TokenType RightBrace to
-    // parse_declaration. so the token doesn't
+    // When i call !self.check i get a but. why is this (expression expected)
     fn parse_block_statement(&mut self) -> Result<Stmt> {
         let mut statements: Vec<Stmt> = Vec::new();
 
         while !self.check(TokenType::RightBrace) && !self.is_at_end() {
             statements.push(self.parse_declaration()?)
         }
+
+        self.consume(TokenType::RightBrace, "Expected '}' after block")?;
+
         Ok(Stmt::Block { statements })
     }
 }
