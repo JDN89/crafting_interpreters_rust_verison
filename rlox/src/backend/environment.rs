@@ -5,7 +5,6 @@ use std::rc::Rc;
 use anyhow::Ok;
 use anyhow::Result;
 
-use crate::backend::environment;
 use crate::backend::value::LoxValue;
 
 pub type Env = Rc<RefCell<Environment>>;
@@ -37,12 +36,23 @@ impl Environment {
 
     pub fn define(&mut self, name: String, value: LoxValue) {
         self.values.insert(name.clone(), value.clone());
-
-        if let Some(enclosing) = &self.enclosing {
-            enclosing.borrow_mut().values.insert(name, value);
-        }
     }
+
+    pub fn assign(&mut self, name: &str, value: LoxValue) -> Result<()> {
+        if self.values.contains_key(name) {
+            self.values.insert(name.to_string(), value.clone());
+            return Ok(());
+        }
+        if let Some(enclosing) = &self.enclosing {
+            enclosing.borrow_mut().assign(name, value)?;
+            return Ok(());
+        }
+
+        anyhow::bail!("Undefined variable {}", name);
+    }
+
     pub fn get(&self, name: &str) -> Result<LoxValue> {
+        // First try to access the inners scope
         if let Some(value) = self.values.get(name) {
             return Ok(value.clone());
         }

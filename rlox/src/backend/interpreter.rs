@@ -52,7 +52,11 @@ impl Interpreter {
                     let value = self.evaluate(expr)?;
                     self.environment.borrow_mut().define(name, value);
                 }
-                Stmt::Block { statements } => self.execute_block(statements, Environment::new())?,
+                Stmt::Block { statements } => self.execute_block(
+                    statements,
+                    // TODO: change clone to ref?
+                    Environment::new_enclosed(self.environment.clone()),
+                )?,
             };
         }
         Ok(())
@@ -61,13 +65,20 @@ impl Interpreter {
     fn evaluate(&mut self, expr: Expr) -> Result<LoxValue> {
         match expr {
             Expr::Binary { left, op, right } => self.evaluate_binary_expression(*left, op, *right),
-            Expr::Assign { name, value } => todo!(),
+            Expr::Assign { name, value } => {
+                let evaluated_value = self.evaluate(*value)?;
+                self.environment
+                    .borrow_mut()
+                    .assign(&name, evaluated_value.clone())?;
+                Ok(evaluated_value)
+            }
             Expr::Literal { value } => Ok(LoxValue::from(value)),
             Expr::Unary { op, right } => {
                 let right = self.evaluate(*right)?;
                 match op {
                     Operator::Plus => Ok(right),
                     Operator::Minus => negate_value(right),
+                    // BUG: this doesn't seem to be correct
                     Operator::Bang => Ok(is_truthy(right)),
                     _ => panic!("Unary should not be possible with the operator types *, / , ="),
                 }
@@ -153,7 +164,6 @@ fn less(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     }
 }
 
-// TODO Return a ()
 fn addition(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
         (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Float(l + r)),
@@ -182,7 +192,7 @@ fn multiplication(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
 
 fn is_truthy(value: LoxValue) -> LoxValue {
     match value {
-        LoxValue::Boolean(_) => LoxValue::from(value),
+        LoxValue::Boolean(v) => LoxValue::Boolean(v),
         LoxValue::Nil => LoxValue::Boolean(false),
         _ => LoxValue::Boolean(true),
     }
