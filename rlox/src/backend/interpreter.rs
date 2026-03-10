@@ -78,15 +78,13 @@ impl Interpreter {
                 match op {
                     Operator::Plus => Ok(right),
                     Operator::Minus => negate_value(right),
-                    // BUG: this doesn't seem to be correct
-                    Operator::Bang => Ok(is_truthy(right)),
+                    Operator::Bang => Ok(LoxValue::Boolean(!is_truthy(right))),
                     _ => panic!("Unary should not be possible with the operator types *, / , ="),
                 }
             }
             Expr::Variable { name } => self.environment.borrow().get(&name),
             Expr::Grouping { value } => self.evaluate(*value),
         }
-        // println!("{:?}", expr);
     }
 
     fn evaluate_binary_expression(
@@ -190,11 +188,11 @@ fn multiplication(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     }
 }
 
-fn is_truthy(value: LoxValue) -> LoxValue {
+fn is_truthy(value: LoxValue) -> bool {
     match value {
-        LoxValue::Boolean(v) => LoxValue::Boolean(v),
-        LoxValue::Nil => LoxValue::Boolean(false),
-        _ => LoxValue::Boolean(true),
+        LoxValue::Boolean(b) => b,
+        LoxValue::Nil => false,
+        _ => true,
     }
 }
 
