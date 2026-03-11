@@ -150,6 +150,11 @@ impl fmt::Display for Expr {
 }
 
 pub enum Stmt {
+    IfStatement {
+        condition: Expr,
+        then_branch: Box<Stmt>,
+        else_branch: Option<Box<Stmt>>,
+    },
     ExpressionStmt {
         expr: Expr,
     },

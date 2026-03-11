@@ -23,9 +23,9 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    fn match_ttype(&mut self, types: Vec<TokenType>) -> bool {
+    fn match_ttype(&mut self, types: &[TokenType]) -> bool {
         for token_type in types {
-            if self.check(token_type) {
+            if self.check(*token_type) {
                 self.advance();
                 return true;
             }
@@ -65,11 +65,7 @@ impl Parser {
 
     fn comparison(&mut self) -> Result<Expr> {
         let mut expr = self.term()?;
-        while self.match_ttype(vec![
-            TokenType::Greater,
-            TokenType::Less,
-            TokenType::LessEqual,
-        ]) {
+        while self.match_ttype(&[TokenType::Greater, TokenType::Less, TokenType::LessEqual]) {
             // NOTE TokenType is of type copy. If we returned &token we run into borrowing issues
             //Rust tracks borrows based on how long a reference is stored, not how long the function call lasts.
             let operator_type = self.previous().ttype;
@@ -88,7 +84,7 @@ impl Parser {
     fn equality(&mut self) -> Result<Expr> {
         let mut expr = self.comparison()?;
 
-        while self.match_ttype(vec![TokenType::BangEqual, TokenType::EqualEqual]) {
+        while self.match_ttype(&[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator_type = self.previous().ttype;
             let right = self.comparison()?;
             expr = Expr::Binary {
@@ -107,7 +103,7 @@ impl Parser {
 
     fn term(&mut self) -> Result<Expr> {
         let mut expr = self.factor()?;
-        while self.match_ttype(vec![TokenType::Minus, TokenType::Plus]) {
+        while self.match_ttype(&[TokenType::Minus, TokenType::Plus]) {
             let operator_type = self.previous().ttype;
             let right = self.factor()?;
             expr = Expr::Binary {
@@ -122,7 +118,7 @@ impl Parser {
 
     fn factor(&mut self) -> Result<Expr> {
         let mut expr = self.unary()?;
-        while self.match_ttype(vec![TokenType::Slash, TokenType::Star]) {
+        while self.match_ttype(&[TokenType::Slash, TokenType::Star]) {
             let operator = self.previous().ttype;
             let right = self.unary()?;
             expr = Expr::Binary {
@@ -136,7 +132,7 @@ impl Parser {
     }
 
     fn unary(&mut self) -> Result<Expr> {
-        if self.match_ttype(vec![TokenType::Bang, TokenType::Minus]) {
+        if self.match_ttype(&[TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous().ttype;
             let right = self.unary()?;
             Ok(Expr::Unary {
@@ -150,39 +146,39 @@ impl Parser {
     }
 
     fn primary(&mut self) -> Result<Expr> {
-        if self.match_ttype(vec![TokenType::False]) {
+        if self.match_ttype(&[TokenType::False]) {
             return Ok(Expr::Literal {
                 value: Literal::Boolean(false),
             });
         }
-        if self.match_ttype(vec![TokenType::True]) {
+        if self.match_ttype(&[TokenType::True]) {
             return Ok(Expr::Literal {
                 value: Literal::Boolean(true),
             });
         }
-        if self.match_ttype(vec![TokenType::Nil]) {
+        if self.match_ttype(&[TokenType::Nil]) {
             return Ok(Expr::Literal {
                 value: Literal::Nil,
             });
         }
-        if self.match_ttype(vec![TokenType::True]) {
+        if self.match_ttype(&[TokenType::True]) {
             return Ok(Expr::Literal {
                 value: Literal::Boolean(true),
             });
         }
 
-        if self.match_ttype(vec![TokenType::String]) {
+        if self.match_ttype(&[TokenType::String]) {
             return Ok(Expr::Literal {
                 value: Literal::Str(self.previous().lexeme.clone()),
             });
         }
-        if self.match_ttype(vec![TokenType::Identifier]) {
+        if self.match_ttype(&[TokenType::Identifier]) {
             return Ok(Expr::Variable {
                 name: self.previous().lexeme.clone(),
             });
         }
 
-        if self.match_ttype(vec![TokenType::Number]) {
+        if self.match_ttype(&[TokenType::Number]) {
             return Ok(Expr::Literal {
                 value: Literal::Float(
                     self.previous()
@@ -192,7 +188,7 @@ impl Parser {
                 ),
             });
         }
-        if self.match_ttype(vec![TokenType::LeftParen]) {
+        if self.match_ttype(&[TokenType::LeftParen]) {
             let expr = self.expression()?;
             self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
             return Ok(Expr::Grouping {
@@ -226,9 +222,24 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<Stmt> {
-        if self.match_ttype(vec![TokenType::Print]) {
+        if self.match_ttype(&[TokenType::If]) {
+            let condition = self.expression()?;
+            self.consume(TokenType::RightParen, "Expect ')' after if condition.");
+            let then_branch: Stmt = self.parse_statement()?;
+            let else_branch = if self.match_ttype(&[TokenType::Else]) {
+                Some(Box::new(self.parse_statement()?))
+            } else {
+                None
+            };
+
+            return Ok(Stmt::IfStatement {
+                condition,
+                then_branch: Box::new(then_branch),
+                else_branch,
+            });
+        } else if self.match_ttype(&[TokenType::Print]) {
             self.parse_print_statement()
-        } else if self.match_ttype(vec![TokenType::LeftBrace]) {
+        } else if self.match_ttype(&[TokenType::LeftBrace]) {
             self.parse_block_statement()
         } else {
             self.parse_expression_statement()
@@ -237,7 +248,7 @@ impl Parser {
 
     // TODO: voorzie error recovery -> consume all tokens until next statement declaration
     fn parse_declaration(&mut self) -> Result<Stmt> {
-        if self.match_ttype(vec![TokenType::Var]) {
+        if self.match_ttype(&[TokenType::Var]) {
             Ok(self.parse_var_declaration()?)
         } else {
             self.parse_statement()
@@ -260,7 +271,7 @@ impl Parser {
         self.consume(TokenType::Identifier, "Expect variable name")?;
         let name = self.previous().lexeme.clone();
 
-        let initializer = if self.match_ttype(vec![TokenType::Equal]) {
+        let initializer = if self.match_ttype(&[TokenType::Equal]) {
             Some(self.expression()?)
         } else {
             None
@@ -281,7 +292,7 @@ impl Parser {
     fn assignment(&mut self) -> Result<Expr> {
         let expression = self.equality()?;
 
-        if self.match_ttype(vec![TokenType::Equal]) {
+        if self.match_ttype(&[TokenType::Equal]) {
             let equals = self.previous().clone(); // cloning token is cheap
             let value = self.assignment()?;
             if let Expr::Variable { name } = &expression {
