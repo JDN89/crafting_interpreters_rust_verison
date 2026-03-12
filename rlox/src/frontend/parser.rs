@@ -1,5 +1,3 @@
-use std::vec;
-
 use anyhow::Context;
 use anyhow::Ok;
 use anyhow::Result;
@@ -224,7 +222,9 @@ impl Parser {
     fn parse_statement(&mut self) -> Result<Stmt> {
         if self.match_ttype(&[TokenType::If]) {
             let condition = self.expression()?;
-            self.consume(TokenType::RightParen, "Expect ')' after if condition.");
+            // BUG something doesn't seem correcct here we don't consume ( but we expect to
+            // consume ')', i thought it's a grouping. Probably missed something in the chapter
+            self.consume(TokenType::RightParen, "Expect ')' after if condition.")?;
             let then_branch: Stmt = self.parse_statement()?;
             let else_branch = if self.match_ttype(&[TokenType::Else]) {
                 Some(Box::new(self.parse_statement()?))
@@ -232,11 +232,11 @@ impl Parser {
                 None
             };
 
-            return Ok(Stmt::IfStatement {
+            Ok(Stmt::IfStatement {
                 condition,
                 then_branch: Box::new(then_branch),
                 else_branch,
-            });
+            })
         } else if self.match_ttype(&[TokenType::Print]) {
             self.parse_print_statement()
         } else if self.match_ttype(&[TokenType::LeftBrace]) {

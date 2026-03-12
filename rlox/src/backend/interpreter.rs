@@ -32,32 +32,47 @@ impl Interpreter {
         }
     }
 
+    fn execute(&mut self, statement: Stmt) -> Result<()> {
+        match statement {
+            Stmt::ExpressionStmt { expr } => {
+                // Discard result and propagate side effect
+                let _ = self.evaluate(expr)?;
+            }
+            Stmt::PrintStmt { expr } => {
+                let result = self.evaluate(expr)?;
+                // discard result
+                println!("{}", result);
+            }
+            Stmt::Var { name, initializer } => {
+                let Some(expr) = initializer else {
+                    anyhow::bail!("Cant evaluate a variable without an assigned value!");
+                };
+                let value = self.evaluate(expr)?;
+                self.environment.borrow_mut().define(name, value);
+            }
+            Stmt::Block { statements } => self.execute_block(
+                statements,
+                // TODO: change clone to ref?
+                Environment::new_enclosed(self.environment.clone()),
+            )?,
+            Stmt::IfStatement {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                if is_truthy(self.evaluate(condition)?) {
+                    self.execute(*then_branch)?;
+                } else if let Some(stmt) = else_branch {
+                    self.execute(*stmt)?;
+                }
+            }
+        };
+        Ok(())
+    }
+
     pub fn interpret(&mut self, statements: Vec<Stmt>) -> Result<()> {
         for stmt in statements {
-            match stmt {
-                Stmt::ExpressionStmt { expr } => {
-                    // Discard result and propagate side effect
-                    let _ = self.evaluate(expr)?;
-                }
-                // NOTE: for debugging purposes
-                Stmt::PrintStmt { expr } => {
-                    let result = self.evaluate(expr)?;
-                    // discard result
-                    println!("{}", result);
-                }
-                Stmt::Var { name, initializer } => {
-                    let Some(expr) = initializer else {
-                        anyhow::bail!("Cant evaluate a variable without an assigned value!");
-                    };
-                    let value = self.evaluate(expr)?;
-                    self.environment.borrow_mut().define(name, value);
-                }
-                Stmt::Block { statements } => self.execute_block(
-                    statements,
-                    // TODO: change clone to ref?
-                    Environment::new_enclosed(self.environment.clone()),
-                )?,
-            };
+            self.execute(stmt)?;
         }
         Ok(())
     }
