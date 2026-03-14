@@ -1,14 +1,5 @@
 # TODO
 
-- [ ] BUG
-
-```bash
-Parser error: : Expect ')' after if condition..
->  ir (1==1) {print 1;}
-```
-
-- [ ] https://craftinginterpreters.com/statements-and-state.html#assignment-semantics 8.4.2
-- [ ] test assignemnt
 - [ ] run test er push in github?
 
 ## Nice to have
@@ -23,6 +14,10 @@ Parser error: : Expect ')' after if condition..
 - [ ] Struct of Arrays instead of Array of struct
 
 ## Notes
+
+##
+
+repalce vec![] in parser with &[] slices. vec allocates on the heap and the slice on the stack, so faster. No need for this to live on the heap. We only use it in 2 functions, and doesn't need to outlive those functions.
 
 ## Chapter 8 Statements
 

@@ -221,9 +221,8 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Result<Stmt> {
         if self.match_ttype(&[TokenType::If]) {
+            self.consume(TokenType::LeftParen, "Expect '(' after 'if'")?;
             let condition = self.expression()?;
-            // BUG something doesn't seem correcct here we don't consume ( but we expect to
-            // consume ')', i thought it's a grouping. Probably missed something in the chapter
             self.consume(TokenType::RightParen, "Expect ')' after if condition.")?;
             let then_branch: Stmt = self.parse_statement()?;
             let else_branch = if self.match_ttype(&[TokenType::Else]) {

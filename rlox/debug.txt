@@ -1,1 +1,6 @@
-print !(true);
+if (1==2) {
+print "if statment is true";
+}
+else {
+print "else statment triggered";
+}
