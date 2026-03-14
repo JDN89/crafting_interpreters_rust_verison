@@ -60,7 +60,7 @@ impl Interpreter {
                 then_branch,
                 else_branch,
             } => {
-                if is_truthy(self.evaluate(condition)?) {
+                if is_truthy(&self.evaluate(condition)?) {
                     self.execute(*then_branch)?;
                 } else if let Some(stmt) = else_branch {
                     self.execute(*stmt)?;
@@ -93,12 +93,15 @@ impl Interpreter {
                 match op {
                     Operator::Plus => Ok(right),
                     Operator::Minus => negate_value(right),
-                    Operator::Bang => Ok(LoxValue::Boolean(!is_truthy(right))),
+                    Operator::Bang => Ok(LoxValue::Boolean(!is_truthy(&right))),
                     _ => panic!("Unary should not be possible with the operator types *, / , ="),
                 }
             }
             Expr::Variable { name } => self.environment.borrow().get(&name),
             Expr::Grouping { value } => self.evaluate(*value),
+            Expr::Logical { left, op, right } => {
+                self.evalutate_logical_expression(*left, op, *right)
+            }
         }
     }
 
@@ -127,6 +130,9 @@ impl Interpreter {
             Operator::LessEqual => less_then_or_equal(left, right),
             Operator::EqualEqual => Ok(LoxValue::Boolean(is_equal(left, right))),
             Operator::BangEqual => Ok(LoxValue::Boolean(!is_equal(left, right))),
+            // REFACTOR these should not be OPS because we put them in another expression type refactor!!
+            Operator::Or => todo!(),
+            Operator::And => todo!(),
         }
     }
 
@@ -140,6 +146,28 @@ impl Interpreter {
         self.interpret(statements)?;
         self.environment = previous;
         Ok(())
+    }
+
+    fn evalutate_logical_expression(
+        &mut self,
+        left: Expr,
+        op: Operator,
+        right: Expr,
+    ) -> Result<LoxValue> {
+        let left = self.evaluate(left)?;
+
+        if op == Operator::Or {
+            if is_truthy(&left) {
+                return Ok(left);
+            }
+        } else {
+            // AND branch
+            if !is_truthy(&left) {
+                return Ok(left);
+            }
+        }
+
+        self.evaluate(right)
     }
 }
 
@@ -203,9 +231,9 @@ fn multiplication(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     }
 }
 
-fn is_truthy(value: LoxValue) -> bool {
+fn is_truthy(value: &LoxValue) -> bool {
     match value {
-        LoxValue::Boolean(b) => b,
+        LoxValue::Boolean(b) => *b,
         LoxValue::Nil => false,
         _ => true,
     }

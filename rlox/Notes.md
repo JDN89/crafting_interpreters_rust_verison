@@ -1,6 +1,8 @@
 # TODO
 
 - [ ] run test er push in github?
+- [ ] todo refactor Operator::and and Operator::or, these should not be operator types, because not binary epxr. cleanup ast,parser, lexer and interpreter
+- [ ] look at comment 13-03-2026, check .clone() calls in code
 
 ## Nice to have
 
@@ -15,7 +17,11 @@
 
 ## Notes
 
-##
+## chapter 9 Control flow
+
+### 13-03-2026
+
+Don't know why but I suddenly stopped passing by ref '&' and starting using .clone()? I caught myself doing it during the implementation of 'and' and 'or' logical operators and I'm wondering if I did it also the past weeks?
 
 repalce vec![] in parser with &[] slices. vec allocates on the heap and the slice on the stack, so faster. No need for this to live on the heap. We only use it in 2 functions, and doesn't need to outlive those functions.
 

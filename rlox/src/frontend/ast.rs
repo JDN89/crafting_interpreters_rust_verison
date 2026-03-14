@@ -37,18 +37,20 @@ impl fmt::Display for Literal {
 #[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
 pub enum Operator {
-    Plus,
-    Minus,
-    Star,
-    Slash,
-    Equal,
-    Bang,
-    Greater,
-    GreaterEqual,
-    Less,
-    LessEqual,
-    BangEqual,
-    EqualEqual,
+    Plus = 0,
+    Minus = 1,
+    Star = 2,
+    Slash = 3,
+    Equal = 4,
+    Bang = 5,
+    Greater = 6,
+    GreaterEqual = 7,
+    Less = 8,
+    LessEqual = 9,
+    BangEqual = 10,
+    EqualEqual = 11,
+    Or = 12,
+    And = 13,
 }
 impl Operator {
     pub fn from_token_type(ttype: TokenType) -> Result<Self, Error> {
@@ -65,6 +67,8 @@ impl Operator {
             TokenType::Greater => Ok(Operator::Greater),
             TokenType::GreaterEqual => Ok(Operator::GreaterEqual),
             TokenType::Equal => Ok(Operator::Equal),
+            TokenType::And => Ok(Operator::And),
+            TokenType::Or => Ok(Operator::Or),
             _ => Err(anyhow!(
                 "[TokenType {:?}] doesn't have a matching operator",
                 ttype
@@ -87,6 +91,8 @@ impl fmt::Display for Operator {
             Operator::LessEqual => "<=",
             Operator::BangEqual => "!=",
             Operator::EqualEqual => "==",
+            Operator::Or => "or",
+            Operator::And => "and",
         };
         write!(f, "{s}")
     }
@@ -95,6 +101,11 @@ impl fmt::Display for Operator {
 #[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
 pub enum Expr {
+    Logical {
+        left: Box<Expr>,
+        op: Operator,
+        right: Box<Expr>,
+    },
     Binary {
         left: Box<Expr>,
         op: Operator,
@@ -125,25 +136,23 @@ impl fmt::Display for Expr {
             Expr::Binary { left, op, right } => {
                 write!(f, "({} {} {})", op, left, right)
             }
-
             Expr::Unary { op, right } => {
                 write!(f, "({} {})", op, right)
             }
-
             Expr::Grouping { value } => {
                 write!(f, "(group {})", value)
             }
-
             Expr::Literal { value } => {
                 write!(f, "{value}")
             }
-
             Expr::Variable { name } => {
                 write!(f, "{name}")
             }
-
             Expr::Assign { name, value } => {
                 write!(f, "({} {})", name, value)
+            }
+            Expr::Logical { left, op, right } => {
+                write!(f, "({} {} {})", op, left, right)
             }
         }
     }

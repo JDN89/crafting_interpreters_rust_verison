@@ -1,6 +1,3 @@
-if (1==2) {
-print "if statment is true";
-}
-else {
-print "else statment triggered";
-}
+
+print "hi" or 2; // "hi".
+print nil or "yes"; // "yes".

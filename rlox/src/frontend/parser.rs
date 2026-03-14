@@ -289,12 +289,12 @@ impl Parser {
     /// if next token is '=' start parsing assignement expression
     /// parse right hand side wich should also be an expression
     fn assignment(&mut self) -> Result<Expr> {
-        let expression = self.equality()?;
+        let expr = self.or()?;
 
         if self.match_ttype(&[TokenType::Equal]) {
             let equals = self.previous().clone(); // cloning token is cheap
             let value = self.assignment()?;
-            if let Expr::Variable { name } = &expression {
+            if let Expr::Variable { name } = &expr {
                 return Ok(Expr::Assign {
                     name: name.clone(),
                     value: Box::new(value),
@@ -302,7 +302,7 @@ impl Parser {
             }
             anyhow::bail!("Token: {} is an invalid assingment target.", &equals);
         }
-        Ok(expression)
+        Ok(expr)
     }
 
     // When i call !self.check i get a but. why is this (expression expected)
@@ -316,5 +316,34 @@ impl Parser {
         self.consume(TokenType::RightBrace, "Expected '}' after block")?;
 
         Ok(Stmt::Block { statements })
+    }
+
+    fn or(&mut self) -> Result<Expr> {
+        let mut expr = self.and()?;
+
+        while self.match_ttype(&[TokenType::Or]) {
+            let op = Operator::from_token_type(self.previous().ttype)?;
+            let right = self.and()?;
+            expr = Expr::Logical {
+                left: Box::new(expr),
+                op,
+                right: Box::new(right),
+            }
+        }
+        Ok(expr)
+    }
+
+    fn and(&mut self) -> Result<Expr> {
+        let mut expr = self.equality()?;
+        while self.match_ttype(&[TokenType::And]) {
+            let op = Operator::from_token_type(self.previous().ttype)?;
+            let right = self.equality()?;
+            expr = Expr::Logical {
+                left: Box::new(expr),
+                op,
+                right: Box::new(right),
+            }
+        }
+        Ok(expr)
     }
 }
