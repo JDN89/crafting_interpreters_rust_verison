@@ -21,7 +21,7 @@ pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<()> {
     //for now for educational purposes
     // let mut interpreter = Interpreter::new();
     interpreter
-        .interpret(statements)
+        .interpret(&statements)
         .context("Runtime error: ")?;
 
     Ok(())

@@ -34,7 +34,7 @@ impl fmt::Display for Literal {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[allow(dead_code)]
 pub enum Operator {
     Plus = 0,

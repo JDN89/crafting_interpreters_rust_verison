@@ -1,8 +1,6 @@
 # TODO
 
 - [ ] run test er push in github?
-- [ ] todo refactor Operator::and and Operator::or, these should not be operator types, because not binary epxr. cleanup ast,parser, lexer and interpreter
-- [ ] look at comment 13-03-2026, check .clone() calls in code
 
 ## Nice to have
 

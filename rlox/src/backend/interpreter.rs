@@ -33,7 +33,7 @@ impl Interpreter {
         }
     }
 
-    fn execute(&mut self, statement: Stmt) -> Result<()> {
+    fn execute(&mut self, statement: &Stmt) -> Result<()> {
         match statement {
             Stmt::ExpressionStmt { expr } => {
                 // Discard result and propagate side effect
@@ -49,7 +49,9 @@ impl Interpreter {
                     anyhow::bail!("Cant evaluate a variable without an assigned value!");
                 };
                 let value = self.evaluate(expr)?;
-                self.environment.borrow_mut().define(name, value);
+                self.environment
+                    .borrow_mut()
+                    .define(name.to_string(), value);
             }
             Stmt::Block { statements } => self.execute_block(
                 statements,
@@ -62,40 +64,40 @@ impl Interpreter {
                 else_branch,
             } => {
                 if is_truthy(&self.evaluate(condition)?) {
-                    self.execute(*then_branch)?;
+                    self.execute(then_branch)?;
                 } else if let Some(stmt) = else_branch {
-                    self.execute(*stmt)?;
+                    self.execute(stmt)?;
                 }
             }
             Stmt::While { condition, body } => {
                 while is_truthy(&self.evaluate(condition)?) {
-                    self.execute(*body);
+                    let _ = self.execute(body);
                 }
             }
         };
         Ok(())
     }
 
-    pub fn interpret(&mut self, statements: Vec<Stmt>) -> Result<()> {
+    pub fn interpret(&mut self, statements: &Vec<Stmt>) -> Result<()> {
         for stmt in statements {
             self.execute(stmt)?;
         }
         Ok(())
     }
 
-    fn evaluate(&mut self, expr: Expr) -> Result<LoxValue> {
+    fn evaluate(&mut self, expr: &Expr) -> Result<LoxValue> {
         match expr {
-            Expr::Binary { left, op, right } => self.evaluate_binary_expression(*left, op, *right),
+            Expr::Binary { left, op, right } => self.evaluate_binary_expression(left, op, right),
             Expr::Assign { name, value } => {
-                let evaluated_value = self.evaluate(*value)?;
+                let evaluated_value = self.evaluate(value)?;
                 self.environment
                     .borrow_mut()
-                    .assign(&name, evaluated_value.clone())?;
+                    .assign(name, evaluated_value.clone())?;
                 Ok(evaluated_value)
             }
-            Expr::Literal { value } => Ok(LoxValue::from(value)),
+            Expr::Literal { value } => Ok(LoxValue::from(value.clone())),
             Expr::Unary { op, right } => {
-                let right = self.evaluate(*right)?;
+                let right = self.evaluate(right)?;
                 match op {
                     Operator::Plus => Ok(right),
                     Operator::Minus => negate_value(right),
@@ -103,19 +105,19 @@ impl Interpreter {
                     _ => panic!("Unary should not be possible with the operator types *, / , ="),
                 }
             }
-            Expr::Variable { name } => self.environment.borrow().get(&name),
-            Expr::Grouping { value } => self.evaluate(*value),
+            Expr::Variable { name } => self.environment.borrow().get(name),
+            Expr::Grouping { value } => self.evaluate(value),
             Expr::Logical { left, op, right } => {
-                self.evalutate_logical_expression(*left, op, *right)
+                self.evalutate_logical_expression(left, *op, right)
             }
         }
     }
 
     fn evaluate_binary_expression(
         &mut self,
-        left: Expr,
-        op: Operator,
-        right: Expr,
+        left: &Expr,
+        op: &Operator,
+        right: &Expr,
     ) -> Result<LoxValue> {
         let left = self.evaluate(left)?;
         let right = self.evaluate(right)?;
@@ -141,7 +143,7 @@ impl Interpreter {
 
     fn execute_block(
         &mut self,
-        statements: Vec<Stmt>,
+        statements: &Vec<Stmt>,
         new: Rc<RefCell<Environment>>,
     ) -> Result<()> {
         let previous = self.environment.clone();
@@ -153,9 +155,9 @@ impl Interpreter {
 
     fn evalutate_logical_expression(
         &mut self,
-        left: Expr,
+        left: &Expr,
         op: TokenType,
-        right: Expr,
+        right: &Expr,
     ) -> Result<LoxValue> {
         let left = self.evaluate(left)?;
 
