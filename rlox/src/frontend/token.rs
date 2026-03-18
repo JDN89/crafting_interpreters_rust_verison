@@ -1,4 +1,5 @@
 use core::fmt;
+use std::fmt::write;
 
 // TODO bekijk of we toch echt zowel de lexeme als de literal nodig? Hebben we ze uberhoupt nodig?
 // Kan ik niet gewoon hun positie in de source code meegeven en dan ze interpreteren (op basis van
@@ -87,4 +88,50 @@ pub enum TokenType {
     While,
 
     Eof,
+}
+
+impl fmt::Display for TokenType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TokenType::LeftParen => write!(f, "TT: LeftParen"),
+            TokenType::RightParen => write!(f, "TT: RightParen"),
+            TokenType::LeftBrace => write!(f, "TT: LeftBrace"),
+            TokenType::RightBrace => write!(f, "TT: RightBrace"),
+            TokenType::Comma => write!(f, "TT: Comma"),
+            TokenType::Dot => write!(f, "TT: Dot"),
+            TokenType::Minus => write!(f, "TT: Minus"),
+            TokenType::Plus => write!(f, "TT: Plus"),
+            TokenType::Semicolon => write!(f, "TT: Semicolon"),
+            TokenType::Slash => write!(f, "TT: Slash"),
+            TokenType::Star => write!(f, "TT: Star"),
+            TokenType::Bang => write!(f, "TT: Bang"),
+            TokenType::BangEqual => write!(f, "TT: BangEqual"),
+            TokenType::Equal => write!(f, "TT: Equal"),
+            TokenType::EqualEqual => write!(f, "TT: EqualEqual"),
+            TokenType::Greater => write!(f, "TT: Greater"),
+            TokenType::GreaterEqual => write!(f, "TT: GreaterEqual"),
+            TokenType::Less => write!(f, "TT: Less"),
+            TokenType::LessEqual => write!(f, "TT: LessEqual"),
+            TokenType::Identifier => write!(f, "TT: Identifier"),
+            TokenType::String => write!(f, "TT: String"),
+            TokenType::Number => write!(f, "TT: Number"),
+            TokenType::And => write!(f, "TT: And"),
+            TokenType::Class => write!(f, "TT: Class"),
+            TokenType::Else => write!(f, "TT: Else"),
+            TokenType::False => write!(f, "TT: False"),
+            TokenType::Fun => write!(f, "TT: Fun"),
+            TokenType::For => write!(f, "TT: For"),
+            TokenType::If => write!(f, "TT: If"),
+            TokenType::Nil => write!(f, "TT: Nil"),
+            TokenType::Or => write!(f, "TT: Or"),
+            TokenType::Print => write!(f, "TT: Print"),
+            TokenType::Return => write!(f, "TT: Return"),
+            TokenType::Super => write!(f, "TT: Super"),
+            TokenType::This => write!(f, "TT: This"),
+            TokenType::True => write!(f, "TT: True"),
+            TokenType::Var => write!(f, "TT: Var"),
+            TokenType::While => write!(f, "TT: While"),
+            TokenType::Eof => write!(f, "TT: Eof"),
+        }
+    }
 }

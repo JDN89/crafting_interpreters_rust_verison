@@ -238,6 +238,8 @@ impl Parser {
             })
         } else if self.match_ttype(&[TokenType::Print]) {
             self.parse_print_statement()
+        } else if self.match_ttype(&[TokenType::While]) {
+            self.parse_while_statement()
         } else if self.match_ttype(&[TokenType::LeftBrace]) {
             self.parse_block_statement()
         } else {
@@ -322,7 +324,7 @@ impl Parser {
         let mut expr = self.and()?;
 
         while self.match_ttype(&[TokenType::Or]) {
-            let op = Operator::from_token_type(self.previous().ttype)?;
+            let op = TokenType::Or;
             let right = self.and()?;
             expr = Expr::Logical {
                 left: Box::new(expr),
@@ -336,7 +338,7 @@ impl Parser {
     fn and(&mut self) -> Result<Expr> {
         let mut expr = self.equality()?;
         while self.match_ttype(&[TokenType::And]) {
-            let op = Operator::from_token_type(self.previous().ttype)?;
+            let op = TokenType::And;
             let right = self.equality()?;
             expr = Expr::Logical {
                 left: Box::new(expr),
@@ -345,5 +347,16 @@ impl Parser {
             }
         }
         Ok(expr)
+    }
+
+    fn parse_while_statement(&mut self) -> Result<Stmt> {
+        self.consume(TokenType::LeftParen, "Expect '(' after 'while'.");
+        let condition = self.expression()?;
+        self.consume(TokenType::RightParen, "Expect ')' after condition.");
+        let body = self.parse_statement()?;
+        Ok(Stmt::While {
+            condition,
+            body: Box::new(body),
+        })
     }
 }

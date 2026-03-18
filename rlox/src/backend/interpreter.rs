@@ -8,6 +8,7 @@ use anyhow::Result;
 use crate::backend::environment::Env;
 use crate::backend::environment::Environment;
 use crate::frontend::ast::Stmt;
+use crate::frontend::token::TokenType;
 use crate::{
     backend::value::LoxValue,
     frontend::ast::{Expr, Operator},
@@ -64,6 +65,11 @@ impl Interpreter {
                     self.execute(*then_branch)?;
                 } else if let Some(stmt) = else_branch {
                     self.execute(*stmt)?;
+                }
+            }
+            Stmt::While { condition, body } => {
+                while is_truthy(&self.evaluate(condition)?) {
+                    self.execute(*body);
                 }
             }
         };
@@ -130,9 +136,6 @@ impl Interpreter {
             Operator::LessEqual => less_then_or_equal(left, right),
             Operator::EqualEqual => Ok(LoxValue::Boolean(is_equal(left, right))),
             Operator::BangEqual => Ok(LoxValue::Boolean(!is_equal(left, right))),
-            // REFACTOR these should not be OPS because we put them in another expression type refactor!!
-            Operator::Or => todo!(),
-            Operator::And => todo!(),
         }
     }
 
@@ -151,12 +154,12 @@ impl Interpreter {
     fn evalutate_logical_expression(
         &mut self,
         left: Expr,
-        op: Operator,
+        op: TokenType,
         right: Expr,
     ) -> Result<LoxValue> {
         let left = self.evaluate(left)?;
 
-        if op == Operator::Or {
+        if op == TokenType::Or {
             if is_truthy(&left) {
                 return Ok(left);
             }

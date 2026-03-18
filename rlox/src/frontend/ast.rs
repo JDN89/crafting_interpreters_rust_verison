@@ -49,8 +49,6 @@ pub enum Operator {
     LessEqual = 9,
     BangEqual = 10,
     EqualEqual = 11,
-    Or = 12,
-    And = 13,
 }
 impl Operator {
     pub fn from_token_type(ttype: TokenType) -> Result<Self, Error> {
@@ -67,8 +65,6 @@ impl Operator {
             TokenType::Greater => Ok(Operator::Greater),
             TokenType::GreaterEqual => Ok(Operator::GreaterEqual),
             TokenType::Equal => Ok(Operator::Equal),
-            TokenType::And => Ok(Operator::And),
-            TokenType::Or => Ok(Operator::Or),
             _ => Err(anyhow!(
                 "[TokenType {:?}] doesn't have a matching operator",
                 ttype
@@ -91,8 +87,6 @@ impl fmt::Display for Operator {
             Operator::LessEqual => "<=",
             Operator::BangEqual => "!=",
             Operator::EqualEqual => "==",
-            Operator::Or => "or",
-            Operator::And => "and",
         };
         write!(f, "{s}")
     }
@@ -103,7 +97,7 @@ impl fmt::Display for Operator {
 pub enum Expr {
     Logical {
         left: Box<Expr>,
-        op: Operator,
+        op: TokenType,
         right: Box<Expr>,
     },
     Binary {
@@ -158,6 +152,7 @@ impl fmt::Display for Expr {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
     IfStatement {
         condition: Expr,
@@ -177,5 +172,9 @@ pub enum Stmt {
     },
     Block {
         statements: Vec<Stmt>,
+    },
+    While {
+        condition: Expr,
+        body: Box<Stmt>,
     },
 }
