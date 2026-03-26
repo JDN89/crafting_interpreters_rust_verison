@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] switched to vec of envs instead of using RC::Refcell. I don't want to run in the same issues as 3 years ago. keep refactoring.
 - [ ] run test er push in github?
 
 ## Nice to have

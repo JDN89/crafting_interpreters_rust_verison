@@ -5,7 +5,7 @@ use std::rc::Rc;
 use anyhow::Ok;
 use anyhow::Result;
 
-use crate::backend::environment::Env;
+use crate::backend::environment::EnvStack;
 use crate::backend::environment::Environment;
 use crate::frontend::ast::Stmt;
 use crate::frontend::token::TokenType;
@@ -15,7 +15,8 @@ use crate::{
 };
 
 pub struct Interpreter {
-    environment: Env,
+    environements: EnvStack,
+    curr: usize,
 }
 
 impl Default for Interpreter {
@@ -29,7 +30,8 @@ impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
             // NOTE: globals is env that is accessbile for everyone
-            environment: Environment::new(),
+            environements: Environment::new(),
+            curr: 0,
         }
     }
 
@@ -49,14 +51,14 @@ impl Interpreter {
                     anyhow::bail!("Cant evaluate a variable without an assigned value!");
                 };
                 let value = self.evaluate(expr)?;
-                self.environment
+                self.environements
                     .borrow_mut()
                     .define(name.to_string(), value);
             }
             Stmt::Block { statements } => self.execute_block(
                 statements,
                 // TODO: change clone to ref?
-                Environment::new_enclosed(self.environment.clone()),
+                Environment::new_enclosed(&mut self.environements, self.curr),
             )?,
             Stmt::IfStatement {
                 condition,
@@ -90,7 +92,7 @@ impl Interpreter {
             Expr::Binary { left, op, right } => self.evaluate_binary_expression(left, op, right),
             Expr::Assign { name, value } => {
                 let evaluated_value = self.evaluate(value)?;
-                self.environment
+                self.environements
                     .borrow_mut()
                     .assign(name, evaluated_value.clone())?;
                 Ok(evaluated_value)
@@ -105,7 +107,7 @@ impl Interpreter {
                     _ => panic!("Unary should not be possible with the operator types *, / , ="),
                 }
             }
-            Expr::Variable { name } => self.environment.borrow().get(name),
+            Expr::Variable { name } => self.environements.borrow().get(name),
             Expr::Grouping { value } => self.evaluate(value),
             Expr::Logical { left, op, right } => {
                 self.evalutate_logical_expression(left, *op, right)
@@ -146,10 +148,10 @@ impl Interpreter {
         statements: &Vec<Stmt>,
         new: Rc<RefCell<Environment>>,
     ) -> Result<()> {
-        let previous = self.environment.clone();
-        self.environment = new;
+        let previous = self.environements.clone();
+        self.environements = new;
         self.interpret(statements)?;
-        self.environment = previous;
+        self.environements = previous;
         Ok(())
     }
 
