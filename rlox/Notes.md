@@ -17,6 +17,12 @@
 
 ## chapter 9 Control flow
 
+
+### 20-05-2026
+Started back on crafting interpreters. 
+I thought i had more tests????
+reverted removing RefCell<Environment> will refactor to Vec or allocator later
+
 ### 13-03-2026
 
 Don't know why but I suddenly stopped passing by ref '&' and starting using .clone()? I caught myself doing it during the implementation of 'and' and 'or' logical operators and I'm wondering if I did it also the past weeks?

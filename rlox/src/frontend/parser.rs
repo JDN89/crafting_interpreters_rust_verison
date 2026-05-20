@@ -350,9 +350,9 @@ impl Parser {
     }
 
     fn parse_while_statement(&mut self) -> Result<Stmt> {
-        self.consume(TokenType::LeftParen, "Expect '(' after 'while'.");
+        self.consume(TokenType::LeftParen, "Expect '(' after 'while'.")?;
         let condition = self.expression()?;
-        self.consume(TokenType::RightParen, "Expect ')' after condition.");
+        self.consume(TokenType::RightParen, "Expect ')' after condition.")?;
         let body = self.parse_statement()?;
         Ok(Stmt::While {
             condition,

@@ -1,5 +1,5 @@
 var a = 1;
 while (a < 2) {
 print "smaller";
-a + 1;
+a = a + 1;
 }
