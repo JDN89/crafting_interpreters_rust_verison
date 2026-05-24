@@ -17,9 +17,16 @@
 
 ## chapter 9 Control flow
 
+### 24-05-2026
+
+Heat wave makes the office to warm.
+Was going over the code and found that I had arrived at [For Loops: 9.5](https://craftinginterpreters.com/control-flow.html#for-loops).
+
+I am liking Zed but I think I still prefer Neovim, but I think I'll keep using Zed for the moment until multicursors have arrived at neovim. Plus my main goals this and the following year is getting down the basiscs of Rust and contributing to an opensource project which would be Zed (written in Rust). Some random ramblings unrelated to this repo :p
 
 ### 20-05-2026
-Started back on crafting interpreters. 
+
+Started back on crafting interpreters.
 I thought i had more tests????
 reverted removing RefCell<Environment> will refactor to Vec or allocator later
 
