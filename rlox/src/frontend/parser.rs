@@ -159,11 +159,6 @@ impl Parser {
                 value: Literal::Nil,
             });
         }
-        if self.match_ttype(&[TokenType::True]) {
-            return Ok(Expr::Literal {
-                value: Literal::Boolean(true),
-            });
-        }
 
         if self.match_ttype(&[TokenType::String]) {
             return Ok(Expr::Literal {
@@ -220,7 +215,11 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<Stmt> {
-        if self.match_ttype(&[TokenType::If]) {
+
+        if self.match_ttype(&[TokenType::For]) {
+            self.parse_for_statement()
+        }
+        else if self.match_ttype(&[TokenType::If]) {
             self.consume(TokenType::LeftParen, "Expect '(' after 'if'")?;
             let condition = self.expression()?;
             self.consume(TokenType::RightParen, "Expect ')' after if condition.")?;
@@ -358,5 +357,27 @@ impl Parser {
             condition,
             body: Box::new(body),
         })
+    }
+
+    // TODO: for loops 9.5
+    // first create the Some...
+    // then if let some to get the value out
+    fn parse_for_statement(&mut self) -> Result<Stmt> {
+
+        self.consume(TokenType::LeftParen, "Expect '(' after 'for'")?;
+
+
+        let intializer =
+        if self.match_ttype(&[TokenType::Semicolon])  {
+            None
+        }
+        else if self.match_ttype(&[TokenType::Var]) {
+             Some(self.parse_var_declaration())
+        }
+        else {
+            Some(self.parse_expression_statement())
+        };
+
+        Ok(())
     }
 }
