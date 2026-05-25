@@ -359,25 +359,78 @@ impl Parser {
         })
     }
 
-    // TODO: for loops 9.5
     // first create the Some...
     // then if let some to get the value out
     fn parse_for_statement(&mut self) -> Result<Stmt> {
 
         self.consume(TokenType::LeftParen, "Expect '(' after 'for'")?;
 
-
-        let intializer =
-        if self.match_ttype(&[TokenType::Semicolon])  {
+        // initializer
+        let initializer = if self.match_ttype(&[TokenType::Semicolon]) {
             None
-        }
-        else if self.match_ttype(&[TokenType::Var]) {
-             Some(self.parse_var_declaration())
-        }
-        else {
-            Some(self.parse_expression_statement())
+        } else if self.match_ttype(&[TokenType::Var]) {
+            Some(self.parse_var_declaration()?)
+        } else {
+            Some(self.parse_expression_statement()?)
         };
 
-        Ok(())
+        // condition
+        let condition = if !self.check(TokenType::Semicolon) {
+            let expr = Some(self.expression()?);
+            self.consume(TokenType::Semicolon, "Expect ';' after loop condition")?;
+            expr
+        } else {
+            self.consume(TokenType::Semicolon, "Expect ';' after loop condition")?;
+            None
+        };
+
+        // increment
+        let increment = if !self.check(TokenType::RightParen) {
+            let expr = Some(self.expression()?);
+            self.consume(TokenType::RightParen, "Expect ')' after for clause")?;
+            expr
+        } else {
+            self.consume(TokenType::RightParen, "Expect ')' after for clause")?;
+            None
+        };
+
+        // loop body
+        let mut body = self.parse_statement()?;
+
+        // append increment after each iteration
+        if let Some(increment) = increment {
+            body = Stmt::Block {
+                statements: vec![
+                    body,
+                    Stmt::ExpressionStmt { expr: increment },
+                ],
+            };
+        }
+
+       // if condition is missing we default to true
+        let condition = condition.unwrap_or(
+            Expr::Literal {
+                value: Literal::Boolean(true),
+            },
+        );
+
+        // Next, we take the condition and the body and build the loop using a primitive while loop
+        body = Stmt::While {
+            condition,
+            body: Box::new(body),
+        };
+
+        // prepend initializer
+        if let Some(initializer) = initializer {
+            body = Stmt::Block {
+                statements: vec![
+                    initializer,
+                    body,
+                ],
+            };
+        }
+
+        Ok(body)
     }
+
 }
