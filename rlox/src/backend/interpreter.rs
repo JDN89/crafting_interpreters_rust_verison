@@ -37,7 +37,7 @@ impl Interpreter {
         match statement {
             Stmt::ExpressionStmt { expr } => {
                 // Discard result and propagate side effect
-                 return self.evaluate(expr);
+                return self.evaluate(expr);
             }
             Stmt::PrintStmt { expr } => {
                 let result = self.evaluate(expr)?;
@@ -45,10 +45,10 @@ impl Interpreter {
                 println!("{}", result);
             }
             Stmt::Var { name, initializer } => {
-                let Some(expr) = initializer else {
-                    anyhow::bail!("Cant evaluate a variable without an assigned value!");
+                let value = match initializer {
+                    Some(expr) => self.evaluate(expr)?,
+                    None => LoxValue::Nil,
                 };
-                let value = self.evaluate(expr)?;
                 self.environment
                     .borrow_mut()
                     .define(name.to_string(), value);
