@@ -1,5 +1,14 @@
 # TODO
 
+- [ ] chapter 9.5 debug error for loop see debug .txt
+
+  > ```run file "debug.txt"
+  > run file
+  >  Error: Runtime error:
+  > Caused by:
+  > Cant evaluate a variable without an assigned value!
+  > ```
+
 - [ ] run test er push in github?
 
 ## Nice to have
