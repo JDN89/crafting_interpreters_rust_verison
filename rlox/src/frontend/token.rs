@@ -1,5 +1,4 @@
 use core::fmt;
-use std::fmt::write;
 
 // TODO bekijk of we toch echt zowel de lexeme als de literal nodig? Hebben we ze uberhoupt nodig?
 // Kan ik niet gewoon hun positie in de source code meegeven en dan ze interpreteren (op basis van

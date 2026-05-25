@@ -1,12 +1,16 @@
-pub mod backend;
-pub mod frontend;
 
 use anyhow::{Context, Result};
-use backend::interpreter::Interpreter;
-use frontend::lexer::Lexer;
-use frontend::parser::Parser;
 
-pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<()> {
+pub mod frontend;
+pub mod backend;
+
+use crate::backend::interpreter::Interpreter;
+use crate::backend::value::LoxValue;
+
+use crate::frontend::lexer::Lexer;
+use crate::frontend::parser::Parser;
+
+pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<LoxValue> {
     let lexer = Lexer::new(source);
     let tokens = lexer.scan_tokens()?;
     // for token in &tokens {
@@ -20,9 +24,11 @@ pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<()> {
     //each function call. solution, make run prompt create the interpreter and pass it here. leave here
     //for now for educational purposes
     // let mut interpreter = Interpreter::new();
-    interpreter
+    let result = interpreter
         .interpret(&statements)
         .context("Runtime error: ")?;
 
-    Ok(())
+    println!("interpreted result {:?}", result);
+
+    Ok(result)
 }

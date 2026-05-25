@@ -24,10 +24,13 @@ fn run_file<P>(path: P) -> Result<()>
 where
     P: AsRef<Path>,
 {
-    println!("run file");
-    let contents = fs::read_to_string(path).context("Should have been able to read the file")?;
+    let contents = fs::read_to_string(path)
+        .context("Should have been able to read the file")?;
+
     let mut interpreter = Interpreter::new();
+
     run(&contents, &mut interpreter)?;
+
     Ok(())
 }
 
@@ -65,7 +68,6 @@ fn main() -> Result<()> {
     In java the first arg is just the first arg
     */
     if args.len() > 2 {
-        println!("Usage: rlox [script]");
         bail!("Usage: rlox [script]");
     } else if args.len() == 2 {
         println!("run file {:?}", args[1]);

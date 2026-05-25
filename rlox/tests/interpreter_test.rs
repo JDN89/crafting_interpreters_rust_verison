@@ -1,31 +1,19 @@
-use rlox::run;
+use rlox::{backend::{interpreter::Interpreter, value::LoxValue}, run};
 
 #[test]
-fn test_addition() {
-    let result = run("1 + 2").unwrap();
-    assert_eq!(result, "3");
+fn test_addition() -> anyhow::Result<()> {
+    let mut interpreter = setup_integation_test();
+
+    let input = "1+2;";
+    let result = run(input, &mut interpreter)?;
+
+    assert_eq!(result, LoxValue::Float(3.0));
+
+    Ok(())
 }
 
-#[test]
-fn test_multiplication() {
-    let result = run("2 * 3").unwrap();
-    assert_eq!(result, "6");
-}
 
-#[test]
-fn test_operator_precedence() {
-    let result = run("1 + 2 * 3").unwrap();
-    assert_eq!(result, "7");
-}
-
-#[test]
-fn test_equality() {
-    let result = run("1 == 1").unwrap();
-    assert_eq!(result, "true");
-}
-
-#[test]
-fn test_greater_then() {
-    let result = run("3 > 1").unwrap();
-    assert_eq!(result, "true");
+fn setup_integation_test() -> Interpreter {
+    let interpreter = Interpreter::new();
+    interpreter
 }

@@ -33,11 +33,11 @@ impl Interpreter {
         }
     }
 
-    fn execute(&mut self, statement: &Stmt) -> Result<()> {
+    fn execute(&mut self, statement: &Stmt) -> Result<LoxValue> {
         match statement {
             Stmt::ExpressionStmt { expr } => {
                 // Discard result and propagate side effect
-                let _ = self.evaluate(expr)?;
+                 return self.evaluate(expr);
             }
             Stmt::PrintStmt { expr } => {
                 let result = self.evaluate(expr)?;
@@ -75,14 +75,17 @@ impl Interpreter {
                 }
             }
         };
-        Ok(())
+        // NOTE: refactored from Ok(), to return LoxValue
+        // Like this I can run and setup integration tests for the interpreter
+        Ok(LoxValue::Nil)
     }
 
-    pub fn interpret(&mut self, statements: &Vec<Stmt>) -> Result<()> {
+    pub fn interpret(&mut self, statements: &Vec<Stmt>) -> Result<LoxValue> {
+        let mut result = LoxValue::Nil;
         for stmt in statements {
-            self.execute(stmt)?;
+            result = self.execute(stmt)?;
         }
-        Ok(())
+        Ok(result)
     }
 
     fn evaluate(&mut self, expr: &Expr) -> Result<LoxValue> {
