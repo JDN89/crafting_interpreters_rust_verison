@@ -1,8 +1,3 @@
-
-
-//works
-for (var i = 0; i < 10; i = i + 1) print i;
-
 // TODO :Does not Work fix:
 var a = 0;
 var temp;
