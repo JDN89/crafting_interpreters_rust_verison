@@ -5,6 +5,7 @@ use std::rc::Rc;
 use anyhow::Ok;
 use anyhow::Result;
 
+use crate::backend::callable::Clock;
 use crate::backend::environment::Env;
 use crate::backend::environment::Environment;
 use crate::frontend::ast::Stmt;
@@ -27,9 +28,14 @@ impl Default for Interpreter {
 #[allow(dead_code)]
 impl Interpreter {
     pub fn new() -> Self {
+        let environment = Environment::new();
+        environment
+            .borrow_mut()
+            .define("clock".to_string(), LoxValue::Callable(Rc::new(Clock)));
+
         Interpreter {
             // NOTE: globals is env that is accessbile for everyone
-            environment: Environment::new(),
+            environment,
         }
     }
 
@@ -117,7 +123,29 @@ impl Interpreter {
                 callee,
                 paren,
                 arguments,
-            } => todo!(),
+            } => {
+                let callee = self.evaluate(callee)?;
+                let mut args = Vec::new();
+                for arg in arguments {
+                    args.push(self.evaluate(arg)?);
+                }
+
+                let function = match callee {
+                    LoxValue::Callable(function) => function,
+                    _ => anyhow::bail!("Can only call functions and classes."),
+                };
+
+                if args.len() != function.arity() {
+                    anyhow::bail!(
+                        "Expected {} arguments but got {}.",
+                        function.arity(),
+                        args.len()
+                    );
+                }
+
+                let _ = paren;
+                function.call(self, args)
+            }
         }
     }
 
@@ -256,5 +284,20 @@ fn negate_value(value: LoxValue) -> Result<LoxValue> {
     match value {
         LoxValue::Float(f) => Ok(LoxValue::Float(-f)),
         _ => anyhow::bail!("Unary applied to a non-number"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{backend::value::LoxValue, test_eval};
+
+    #[test]
+    fn clock_call_returns_float() {
+        let result = test_eval("clock();").unwrap();
+
+        match result {
+            LoxValue::Float(n) => assert!(n > 0.0),
+            other => panic!("expected float result, got {other:?}"),
+        }
     }
 }

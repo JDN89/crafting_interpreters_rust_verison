@@ -1,5 +1,5 @@
 use rlox::{
-    backend::{interpreter::Interpreter, value::LoxValue},
+    backend::value::LoxValue,
     test_eval,
 };
 
@@ -11,6 +11,25 @@ fn test_addition() -> anyhow::Result<()> {
     assert_eq!(result, LoxValue::Float(3.0));
 
     Ok(())
+}
+
+#[test]
+fn test_clock_call() -> anyhow::Result<()> {
+    let result = test_eval("clock();")?;
+
+    match result {
+        LoxValue::Float(n) => assert!(n > 0.0),
+        other => panic!("expected float result, got {other:?}"),
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_call_arity_error() {
+    let result = test_eval("clock(1);");
+
+    assert!(result.is_err());
 }
 
 #[test]
