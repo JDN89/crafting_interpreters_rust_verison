@@ -1,5 +1,4 @@
 use anyhow::Context;
-use anyhow::Ok;
 use anyhow::Result;
 use anyhow::anyhow;
 
@@ -61,7 +60,7 @@ impl Parser {
             .expect("Error indexing into Parser::tokens")
     }
 
-    fn comparison(&mut self) -> Result<Expr> {
+    fn comparison(&mut self) -> Result<Expr, anyhow::Error> {
         let mut expr = self.term()?;
         while self.match_ttype(&[TokenType::Greater, TokenType::Less, TokenType::LessEqual]) {
             // NOTE TokenType is of type copy. If we returned &token we run into borrowing issues
@@ -79,7 +78,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn equality(&mut self) -> Result<Expr> {
+    fn equality(&mut self) -> Result<Expr, anyhow::Error> {
         let mut expr = self.comparison()?;
 
         while self.match_ttype(&[TokenType::BangEqual, TokenType::EqualEqual]) {
@@ -95,11 +94,11 @@ impl Parser {
         Ok(expr)
     }
 
-    fn expression(&mut self) -> Result<Expr> {
+    fn expression(&mut self) -> Result<Expr, anyhow::Error> {
         self.assignment()
     }
 
-    fn term(&mut self) -> Result<Expr> {
+    fn term(&mut self) -> Result<Expr, anyhow::Error> {
         let mut expr = self.factor()?;
         while self.match_ttype(&[TokenType::Minus, TokenType::Plus]) {
             let operator_type = self.previous().ttype;
@@ -114,7 +113,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn factor(&mut self) -> Result<Expr> {
+    fn factor(&mut self) -> Result<Expr, anyhow::Error> {
         let mut expr = self.unary()?;
         while self.match_ttype(&[TokenType::Slash, TokenType::Star]) {
             let operator = self.previous().ttype;
@@ -129,7 +128,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn unary(&mut self) -> Result<Expr> {
+    fn unary(&mut self) -> Result<Expr, anyhow::Error> {
         if self.match_ttype(&[TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous().ttype;
             let right = self.unary()?;
@@ -139,11 +138,11 @@ impl Parser {
                 right: Box::new(right),
             })
         } else {
-            self.primary()
+            self.call()
         }
     }
 
-    fn primary(&mut self) -> Result<Expr> {
+    fn primary(&mut self) -> Result<Expr, anyhow::Error> {
         if self.match_ttype(&[TokenType::False]) {
             return Ok(Expr::Literal {
                 value: Literal::Boolean(false),
@@ -215,11 +214,9 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<Stmt> {
-
         if self.match_ttype(&[TokenType::For]) {
             self.parse_for_statement()
-        }
-        else if self.match_ttype(&[TokenType::If]) {
+        } else if self.match_ttype(&[TokenType::If]) {
             self.consume(TokenType::LeftParen, "Expect '(' after 'if'")?;
             let condition = self.expression()?;
             self.consume(TokenType::RightParen, "Expect ')' after if condition.")?;
@@ -362,7 +359,6 @@ impl Parser {
     // first create the Some...
     // then if let some to get the value out
     fn parse_for_statement(&mut self) -> Result<Stmt> {
-
         self.consume(TokenType::LeftParen, "Expect '(' after 'for'")?;
 
         // initializer
@@ -400,19 +396,14 @@ impl Parser {
         // append increment after each iteration
         if let Some(increment) = increment {
             body = Stmt::Block {
-                statements: vec![
-                    body,
-                    Stmt::ExpressionStmt { expr: increment },
-                ],
+                statements: vec![body, Stmt::ExpressionStmt { expr: increment }],
             };
         }
 
-       // if condition is missing we default to true
-        let condition = condition.unwrap_or(
-            Expr::Literal {
-                value: Literal::Boolean(true),
-            },
-        );
+        // if condition is missing we default to true
+        let condition = condition.unwrap_or(Expr::Literal {
+            value: Literal::Boolean(true),
+        });
 
         // Next, we take the condition and the body and build the loop using a primitive while loop
         body = Stmt::While {
@@ -423,14 +414,76 @@ impl Parser {
         // prepend initializer
         if let Some(initializer) = initializer {
             body = Stmt::Block {
-                statements: vec![
-                    initializer,
-                    body,
-                ],
+                statements: vec![initializer, body],
             };
         }
 
         Ok(body)
     }
 
+    fn call(&mut self) -> Result<Expr> {
+        let mut expr = self.primary()?;
+
+        while self.match_ttype(&[TokenType::LeftParen]) {
+            expr = self.finish_call(expr)?;
+        }
+
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr> {
+        let mut arguments = Vec::new();
+
+        if !self.check(TokenType::RightParen) {
+            loop {
+                arguments.push(self.expression()?);
+
+                if !self.match_ttype(&[TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+
+        self.consume(TokenType::RightParen, "Expect ')' after arguments.")?;
+
+        Ok(Expr::Call {
+            callee: Box::new(callee),
+            paren: TokenType::RightParen,
+            arguments,
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::frontend::lexer::Lexer;
+
+    #[test]
+    fn parse_call_expression() {
+        let tokens = Lexer::new("foo(1, 2);").scan_tokens().unwrap();
+        let mut parser = Parser::new(tokens);
+        let statements = parser.parse().unwrap();
+
+        assert_eq!(statements.len(), 1);
+        assert_eq!(
+            statements[0],
+            Stmt::ExpressionStmt {
+                expr: Expr::Call {
+                    callee: Box::new(Expr::Variable {
+                        name: "foo".to_string(),
+                    }),
+                    paren: TokenType::RightParen,
+                    arguments: vec![
+                        Expr::Literal {
+                            value: Literal::Float(1.0),
+                        },
+                        Expr::Literal {
+                            value: Literal::Float(2.0),
+                        },
+                    ],
+                },
+            }
+        );
+    }
 }

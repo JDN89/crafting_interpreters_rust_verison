@@ -105,6 +105,11 @@ pub enum Expr {
         op: Operator,
         right: Box<Expr>,
     },
+    Call {
+        callee: Box<Expr>,
+        paren: TokenType,
+        arguments: Vec<Expr>,
+    },
     Assign {
         name: String,
         value: Box<Expr>,
@@ -147,6 +152,13 @@ impl fmt::Display for Expr {
             }
             Expr::Logical { left, op, right } => {
                 write!(f, "({} {} {})", op, left, right)
+            }
+            Expr::Call {
+                callee,
+                paren,
+                arguments,
+            } => {
+                write!(f, "({},{},{:#?})", callee, paren, arguments)
             }
         }
     }

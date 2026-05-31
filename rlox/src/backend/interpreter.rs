@@ -113,6 +113,11 @@ impl Interpreter {
             Expr::Logical { left, op, right } => {
                 self.evalutate_logical_expression(left, *op, right)
             }
+            Expr::Call {
+                callee,
+                paren,
+                arguments,
+            } => todo!(),
         }
     }
 
