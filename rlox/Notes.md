@@ -1,5 +1,7 @@
 # TODO
 
+- [ ] check todo in parse_declaration [10.3](https://craftinginterpreters.com/functions.html#function-declarations)
+
 ## Nice to have
 
 - [ ] finish statement chapter and fix integration tests

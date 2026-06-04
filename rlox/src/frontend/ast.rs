@@ -9,7 +9,7 @@ use core::fmt;
 
 use anyhow::*;
 
-use crate::frontend::token::TokenType;
+use crate::frontend::token::{Token, TokenType};
 
 // TODO this enum is exactly the same as the token Literal enum. Something's got to go!!
 // TODO even the source can go on the allocator. when we need a substring just store the start and
@@ -187,6 +187,11 @@ pub enum Stmt {
     },
     While {
         condition: Expr,
+        body: Box<Stmt>,
+    },
+    Function {
+        name: Token,
+        params: Vec<Token>,
         body: Box<Stmt>,
     },
 }

@@ -245,6 +245,9 @@ impl Parser {
 
     // TODO: voorzie error recovery -> consume all tokens until next statement declaration
     fn parse_declaration(&mut self) -> Result<Stmt> {
+        if self.match_ttype(&[TokenType::Fun]) {
+            Ok(self.parse_function()?)
+        }
         if self.match_ttype(&[TokenType::Var]) {
             Ok(self.parse_var_declaration()?)
         } else {
@@ -451,6 +454,11 @@ impl Parser {
             paren: TokenType::RightParen,
             arguments,
         })
+    }
+
+    // TODO: 10.3 function declaration
+    fn parse_function(&self) -> _ {
+        todo!()
     }
 }
 
