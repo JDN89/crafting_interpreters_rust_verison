@@ -1,8 +1,7 @@
-
 use anyhow::Result;
 
-pub mod frontend;
 pub mod backend;
+pub mod frontend;
 
 use crate::backend::interpreter::Interpreter;
 use crate::backend::value::LoxValue;

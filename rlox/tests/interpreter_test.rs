@@ -1,7 +1,4 @@
-use rlox::{
-    backend::value::LoxValue,
-    test_eval,
-};
+use rlox::{backend::value::LoxValue, test_eval};
 
 #[test]
 fn test_addition() -> anyhow::Result<()> {

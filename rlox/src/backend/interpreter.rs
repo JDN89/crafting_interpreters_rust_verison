@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use crate::backend::callable::Clock;
 use crate::backend::environment::Env;

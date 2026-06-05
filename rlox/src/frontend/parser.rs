@@ -18,6 +18,11 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
+    /// Checks whether the current token matches any token type in `types`.
+    ///
+    /// If a match is found, this consumes the token by advancing the parser
+    /// and returns `true`. Otherwise, it leaves the parser unchanged and
+    /// returns `false`.
     fn match_ttype(&mut self, types: &[TokenType]) -> bool {
         for token_type in types {
             if self.check(*token_type) {
@@ -28,6 +33,8 @@ impl Parser {
         false
     }
 
+    /// Checks whether the current token matches any token type in `types`.
+    /// and return true or false
     fn check(&self, ttype: TokenType) -> bool {
         if self.is_at_end() {
             return false;
@@ -35,6 +42,7 @@ impl Parser {
         self.peek().ttype == ttype
     }
 
+    /// advance and return consumed Token
     fn advance(&mut self) {
         if !self.is_at_end() {
             self.current += 1;
@@ -52,6 +60,7 @@ impl Parser {
         self.peek().ttype == TokenType::Eof
     }
 
+    /// return previous Token
     fn previous(&self) -> &Token {
         self.tokens
             .get(self.current - 1)
@@ -305,6 +314,11 @@ impl Parser {
     }
 
     // When i call !self.check i get a but. why is this (expression expected)
+    /// return Stmt::Block enum variant
+    ///
+    ///     Block {
+    ///       statements: Vec<Stmt>,
+    ///       },
     fn parse_block_statement(&mut self) -> Result<Stmt> {
         let mut statements: Vec<Stmt> = Vec::new();
 
@@ -454,27 +468,39 @@ impl Parser {
         })
     }
 
-    // TODO: 10.3 function declaration
-    // Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
-    // consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
-    // List<Token> parameters = new ArrayList<>();
-    // if (!check(RIGHT_PAREN)) {
-    //   do {
-    //     if (parameters.size() >= 255) {
-    //       error(peek(), "Can't have more than 255 parameters.");
-    //     }
-    //
-    //     parameters.add(
-    //         consume(IDENTIFIER, "Expect parameter name."));
-    //   } while (match(COMMA));
-    // }
-    // consume(RIGHT_PAREN, "Expect ')' after parameters.");
-    // consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
-    //    List<Stmt> body = block();
-    //    return new Stmt.Function(name, parameters, body);
-
+    // 10.3 function declaration
     fn parse_function(&mut self) -> Result<Stmt> {
-        bail!("Function declarations are not implemented yet.")
+        self.consume(TokenType::Identifier, "Expect function name")?;
+        let name: Token = self.previous().clone();
+
+        self.consume(TokenType::LeftParen, "Expect '(' after function name")?;
+
+        let mut parameters: Vec<Token> = Vec::new();
+
+        if !self.check(TokenType::RightParen) {
+            loop {
+                if parameters.len() >= 255 {
+                    bail!("Can't have more than 255 parameters");
+                }
+                self.consume(TokenType::Identifier, "Expect parameter name.")?;
+                let param = self.previous().clone();
+
+                parameters.push(param);
+
+                if !self.match_ttype(&[TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenType::RightParen, "Expect ')' after parameters.")?;
+        self.consume(TokenType::LeftBrace, "Expect '{' before function body.")?;
+        let body: Stmt = self.parse_block_statement()?;
+
+        Ok(Stmt::Function {
+            name,
+            params: parameters,
+            body: Box::new(body),
+        })
     }
 }
 
@@ -482,6 +508,7 @@ impl Parser {
 mod tests {
     use super::*;
     use crate::frontend::lexer::Lexer;
+    use crate::frontend::token::Token;
 
     #[test]
     fn parse_call_expression() {
@@ -507,6 +534,34 @@ mod tests {
                         },
                     ],
                 },
+            }
+        );
+    }
+
+    #[test]
+    fn parse_function_declaration_with_parameters() {
+        let tokens = Lexer::new("fun add(a, b) { print a; }")
+            .scan_tokens()
+            .unwrap();
+        let mut parser = Parser::new(tokens);
+        let statements = parser.parse().unwrap();
+
+        assert_eq!(statements.len(), 1);
+        assert_eq!(
+            statements[0],
+            Stmt::Function {
+                name: Token::new(TokenType::Identifier, "add".to_string(), 1),
+                params: vec![
+                    Token::new(TokenType::Identifier, "a".to_string(), 1),
+                    Token::new(TokenType::Identifier, "b".to_string(), 1),
+                ],
+                body: Box::new(Stmt::Block {
+                    statements: vec![Stmt::PrintStmt {
+                        expr: Expr::Variable {
+                            name: "a".to_string(),
+                        },
+                    }],
+                }),
             }
         );
     }

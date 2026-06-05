@@ -24,8 +24,7 @@ fn run_file<P>(path: P) -> Result<()>
 where
     P: AsRef<Path>,
 {
-    let contents = fs::read_to_string(path)
-        .context("Should have been able to read the file")?;
+    let contents = fs::read_to_string(path).context("Should have been able to read the file")?;
 
     let mut interpreter = Interpreter::new();
 
