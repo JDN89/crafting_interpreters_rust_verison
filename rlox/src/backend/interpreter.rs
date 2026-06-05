@@ -1,9 +1,7 @@
-use core::panic;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use anyhow::Ok;
-use anyhow::Result;
+use anyhow::{bail, Result};
 
 use crate::backend::callable::Clock;
 use crate::backend::environment::Env;
@@ -80,6 +78,9 @@ impl Interpreter {
                     let _ = self.execute(body);
                 }
             }
+            Stmt::Function { .. } => {
+                bail!("Function declarations are not implemented yet.");
+            }
         };
         // NOTE: refactored from Ok(), to return LoxValue
         // Like this I can run and setup integration tests for the interpreter
@@ -132,11 +133,11 @@ impl Interpreter {
 
                 let function = match callee {
                     LoxValue::Callable(function) => function,
-                    _ => anyhow::bail!("Can only call functions and classes."),
+                    _ => bail!("Can only call functions and classes."),
                 };
 
                 if args.len() != function.arity() {
-                    anyhow::bail!(
+                    bail!(
                         "Expected {} arguments but got {}.",
                         function.arity(),
                         args.len()
@@ -163,10 +164,10 @@ impl Interpreter {
             Operator::Star => multiplication(left, right),
             Operator::Slash => division(left, right),
             Operator::Equal => {
-                anyhow::bail!("'=' should not appear as an operator in a binary expression",)
+                bail!("'=' should not appear as an operator in a binary expression",)
             }
             Operator::Bang => {
-                anyhow::bail!("'!' should no appear is the operator in a binary expression",)
+                bail!("'!' should no appear is the operator in a binary expression",)
             }
             Operator::Greater => greater(left, right),
             Operator::GreaterEqual => greater_then_or_equal(left, right),
@@ -223,26 +224,26 @@ fn is_equal(left: LoxValue, right: LoxValue) -> bool {
 fn greater_then_or_equal(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
         (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Boolean(l >= r)),
-        _ => anyhow::bail!("can't compare greater than or equal for non-numbers!",),
+        _ => bail!("can't compare greater than or equal for non-numbers!",),
     }
 }
 fn less_then_or_equal(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
         (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Boolean(l <= r)),
-        _ => anyhow::bail!("can't compare lesser than or equal for non-numbers!",),
+        _ => bail!("can't compare lesser than or equal for non-numbers!",),
     }
 }
 
 fn greater(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
         (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Boolean(l > r)),
-        _ => anyhow::bail!("can't compare greater than for non-numbers!",),
+        _ => bail!("can't compare greater than for non-numbers!",),
     }
 }
 fn less(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
         (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Boolean(l < r)),
-        _ => anyhow::bail!("can't compare less than for non-numbers!",),
+        _ => bail!("can't compare less than for non-numbers!",),
     }
 }
 
@@ -250,25 +251,25 @@ fn addition(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
         (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Float(l + r)),
         (LoxValue::Str(l), LoxValue::Str(r)) => Ok(LoxValue::Str(l + &r)),
-        _ => anyhow::bail!("Operands must be two numbers or two strings.",),
+        _ => bail!("Operands must be two numbers or two strings.",),
     }
 }
 fn subtraction(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
         (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Float(l - r)),
-        _ => anyhow::bail!("can subtract non-numbers!"),
+        _ => bail!("can subtract non-numbers!"),
     }
 }
 fn division(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
         (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Float(l / r)),
-        _ => anyhow::bail!("can subtract non-numbers!"),
+        _ => bail!("can subtract non-numbers!"),
     }
 }
 fn multiplication(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
         (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Float(l * r)),
-        _ => anyhow::bail!("can subtract non-numbers!"),
+        _ => bail!("can subtract non-numbers!"),
     }
 }
 
@@ -283,7 +284,7 @@ fn is_truthy(value: &LoxValue) -> bool {
 fn negate_value(value: LoxValue) -> Result<LoxValue> {
     match value {
         LoxValue::Float(f) => Ok(LoxValue::Float(-f)),
-        _ => anyhow::bail!("Unary applied to a non-number"),
+        _ => bail!("Unary applied to a non-number"),
     }
 }
 

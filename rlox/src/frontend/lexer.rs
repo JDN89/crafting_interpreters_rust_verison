@@ -1,4 +1,4 @@
-use anyhow::*;
+use anyhow::{bail, Result};
 
 use phf::phf_map;
 
@@ -113,7 +113,7 @@ impl<'a> Lexer<'a> {
         }
 
         if self.is_at_end() {
-            return Err(anyhow!("[line {}] Error : Unterminated string", self.line));
+            bail!("[line {}] Error : Unterminated string", self.line);
         }
 
         // NOTE consume the enclosing "
@@ -233,10 +233,7 @@ impl<'a> Lexer<'a> {
                     // NOTE bug if we are at end or if we don't find the terminating '/' for the block
                     // comment
                     if self.is_at_end() {
-                        return Err(anyhow!(
-                            "[Line {}] Error: Unterminated block comment!",
-                            self.line
-                        ));
+                        bail!("[Line {}] Error: Unterminated block comment!", self.line);
                     }
                 } else {
                     // NOTE only '/' for division
@@ -252,7 +249,7 @@ impl<'a> Lexer<'a> {
                 } else if self.is_alpha(c) {
                     self.identifier();
                 } else {
-                    return Err(anyhow!("[line {}] Error : Unexpected character", self.line));
+                    bail!("[line {}] Error : Unexpected character", self.line);
                 }
             }
         }

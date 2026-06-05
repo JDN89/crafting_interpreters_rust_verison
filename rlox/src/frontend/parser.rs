@@ -1,6 +1,4 @@
-use anyhow::Context;
-use anyhow::Result;
-use anyhow::anyhow;
+use anyhow::{Context, Result, bail};
 
 use crate::frontend::ast::Literal;
 use crate::frontend::ast::Stmt;
@@ -188,10 +186,10 @@ impl Parser {
             });
         }
 
-        Err(anyhow!(
+        bail!(
             "Expected expression. But got token {:?}",
             self.tokens[self.current]
-        ))
+        )
     }
 
     // TODO implement panic mode
@@ -200,7 +198,7 @@ impl Parser {
             self.advance();
             Ok(())
         } else {
-            Err(anyhow!("{}.", arg))
+            bail!("{}.", arg)
         }
     }
 
@@ -246,7 +244,7 @@ impl Parser {
     // TODO: voorzie error recovery -> consume all tokens until next statement declaration
     fn parse_declaration(&mut self) -> Result<Stmt> {
         if self.match_ttype(&[TokenType::Fun]) {
-            Ok(self.parse_function()?)
+            return self.parse_function();
         }
         if self.match_ttype(&[TokenType::Var]) {
             Ok(self.parse_var_declaration()?)
@@ -301,7 +299,7 @@ impl Parser {
                     value: Box::new(value),
                 });
             }
-            anyhow::bail!("Token: {} is an invalid assingment target.", &equals);
+            bail!("Token: {} is an invalid assingment target.", &equals);
         }
         Ok(expr)
     }
@@ -457,8 +455,26 @@ impl Parser {
     }
 
     // TODO: 10.3 function declaration
-    fn parse_function(&self) -> _ {
-        todo!()
+    // Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
+    // consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
+    // List<Token> parameters = new ArrayList<>();
+    // if (!check(RIGHT_PAREN)) {
+    //   do {
+    //     if (parameters.size() >= 255) {
+    //       error(peek(), "Can't have more than 255 parameters.");
+    //     }
+    //
+    //     parameters.add(
+    //         consume(IDENTIFIER, "Expect parameter name."));
+    //   } while (match(COMMA));
+    // }
+    // consume(RIGHT_PAREN, "Expect ')' after parameters.");
+    // consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
+    //    List<Stmt> body = block();
+    //    return new Stmt.Function(name, parameters, body);
+
+    fn parse_function(&mut self) -> Result<Stmt> {
+        bail!("Function declarations are not implemented yet.")
     }
 }
 
