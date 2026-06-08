@@ -14,7 +14,7 @@ use crate::{
 };
 
 pub struct Interpreter {
-    environment: Env,
+    pub environment: Env,
 }
 
 impl Default for Interpreter {
@@ -178,7 +178,7 @@ impl Interpreter {
         }
     }
 
-    fn execute_block(
+    pub fn execute_block(
         &mut self,
         statements: &Vec<Stmt>,
         new: Rc<RefCell<Environment>>,

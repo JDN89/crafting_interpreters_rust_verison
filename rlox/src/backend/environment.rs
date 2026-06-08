@@ -27,6 +27,13 @@ impl Environment {
             enclosing: None,
         }))
     }
+
+    /// Creates a new environment enclosed by `enclosing`, which is usually
+    /// the parent or outer scope.
+    ///
+    /// This is the scope-chain link used for nested blocks and functions: the
+    /// new environment starts empty, but any lookup or assignment that cannot
+    /// be satisfied locally will fall back to the enclosing environment.
     pub fn new_enclosed(enclosing: Env) -> Env {
         Rc::new(RefCell::new(Environment {
             values: HashMap::new(),
