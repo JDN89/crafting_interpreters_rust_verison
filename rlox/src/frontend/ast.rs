@@ -193,6 +193,6 @@ pub enum Stmt {
     Function {
         name: Token,
         params: Vec<Token>,
-        body: Box<Stmt>,
+        body: Vec<Stmt>,
     },
 }

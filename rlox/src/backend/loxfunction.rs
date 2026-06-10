@@ -5,9 +5,13 @@ use crate::{
 
 use super::value::LoxValue;
 
-// TODO can't i just store name, params and body here as well and pass the Stmt another way instead
-// of storing Stmts ast inside LoxFunction which is a runtime wrapper that will be execued at runtime?
-// TODO store Env as well here (the enclosing so the parent env?)
+// Further, this environment must be created dynamically. Each function call gets its own environment.
+// Otherwise, recursion would break. If there are multiple calls to the same function in play at the same time,
+// each needs its own environment, even though they are all calls to the same function.
+//
+//That’s why we create a new environment at each call, not at the function declaration
+//Then it walks the parameter and argument lists in lockstep. For each pair, it creates a new variable with the parameter’s name and binds it to the argument’s value.
+//TODO for Closures this will probably change to at declaration time
 #[derive(Debug, Clone)]
 pub struct LoxFunction {
     declaration: Stmt,
@@ -15,7 +19,10 @@ pub struct LoxFunction {
 
 impl LoxCallable for LoxFunction {
     fn arity(&self) -> usize {
-        todo!()
+        let Stmt::Function { params, .. } = &self.declaration else {
+            unreachable!("LoxFunction can only contain a Stmt::LoxFunction")
+        };
+        params.len()
     }
 
     fn call(
@@ -23,19 +30,28 @@ impl LoxCallable for LoxFunction {
         interpreter: &mut super::interpreter::Interpreter,
         arguments: Vec<LoxValue>,
     ) -> anyhow::Result<LoxValue> {
-        let mut env = Environment::new_enclosed(interpreter.environment.clone());
+        let env = Environment::new_enclosed(interpreter.environment.clone());
 
-        // TODO do we need to clone here?
-        let Stmt::Function { name, params, body } = self.declaration.clone() else {
+        let Stmt::Function { params, body, .. } = &self.declaration else {
             unreachable!("LoxFunction can only contain a Stmt::LoxFunction")
         };
 
         for (arg, param) in arguments.into_iter().zip(params) {
-            env.get_mut().define(param.lexeme, arg);
+            env.borrow_mut().define(param.lexeme.clone(), arg);
         }
 
-        interpreter.execute_block(&[body], env);
+        let _ = interpreter.execute_block(body, env);
 
-        return Ok(LoxValue::Nil);
+        Ok(LoxValue::Nil)
+    }
+}
+
+impl std::fmt::Display for LoxFunction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Stmt::Function { name, .. } = &self.declaration {
+            write!(f, "<fn {}>", name.lexeme)
+        } else {
+            write!(f, "<fn>")
+        }
     }
 }

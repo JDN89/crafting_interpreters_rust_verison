@@ -313,13 +313,7 @@ impl Parser {
         Ok(expr)
     }
 
-    // When i call !self.check i get a but. why is this (expression expected)
-    /// return Stmt::Block enum variant
-    ///
-    ///     Block {
-    ///       statements: Vec<Stmt>,
-    ///       },
-    fn parse_block_statement(&mut self) -> Result<Stmt> {
+    fn parse_block(&mut self) -> Result<Vec<Stmt>> {
         let mut statements: Vec<Stmt> = Vec::new();
 
         while !self.check(TokenType::RightBrace) && !self.is_at_end() {
@@ -327,7 +321,11 @@ impl Parser {
         }
 
         self.consume(TokenType::RightBrace, "Expected '}' after block")?;
+        Ok(statements)
+    }
 
+    fn parse_block_statement(&mut self) -> Result<Stmt> {
+        let statements = self.parse_block()?;
         Ok(Stmt::Block { statements })
     }
 
@@ -494,12 +492,12 @@ impl Parser {
         }
         self.consume(TokenType::RightParen, "Expect ')' after parameters.")?;
         self.consume(TokenType::LeftBrace, "Expect '{' before function body.")?;
-        let body: Stmt = self.parse_block_statement()?;
+        let statements = self.parse_block()?;
 
         Ok(Stmt::Function {
             name,
             params: parameters,
-            body: Box::new(body),
+            body: statements,
         })
     }
 }
