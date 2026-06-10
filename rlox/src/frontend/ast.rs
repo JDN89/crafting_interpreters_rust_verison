@@ -189,7 +189,7 @@ pub enum Stmt {
         condition: Expr,
         body: Box<Stmt>,
     },
-    // BUG: fix this should be Vec Stmt!
+
     Function {
         name: Token,
         params: Vec<Token>,
