@@ -1,6 +1,6 @@
 # TODO
 
-- [ ] check todo in parse_declaration [10.3](https://craftinginterpreters.com/functions.html#function-declarations)
+- [ ] [start 10.4.1](https://craftinginterpreters.com/functions.html#interpreting-function-declarations)
 
 ## Nice to have
 
