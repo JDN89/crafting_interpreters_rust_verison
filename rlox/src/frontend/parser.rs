@@ -553,13 +553,11 @@ mod tests {
                     Token::new(TokenType::Identifier, "a".to_string(), 1),
                     Token::new(TokenType::Identifier, "b".to_string(), 1),
                 ],
-                body: Box::new(Stmt::Block {
-                    statements: vec![Stmt::PrintStmt {
-                        expr: Expr::Variable {
-                            name: "a".to_string(),
-                        },
-                    }],
-                }),
+                body: vec![Stmt::PrintStmt {
+                    expr: Expr::Variable {
+                        name: "a".to_string(),
+                    },
+                }],
             }
         );
     }
