@@ -6,6 +6,7 @@ use anyhow::{Result, bail};
 use crate::backend::callable::Clock;
 use crate::backend::environment::Env;
 use crate::backend::environment::Environment;
+use crate::backend::loxfunction::LoxFunction;
 use crate::frontend::ast::Stmt;
 use crate::frontend::token::TokenType;
 use crate::{
@@ -78,8 +79,12 @@ impl Interpreter {
                     let _ = self.execute(body);
                 }
             }
-            Stmt::Function { .. } => {
-                bail!("Function declarations are not implemented yet.");
+            Stmt::Function {name, ..} => {
+                let function = LoxFunction {
+                      declaration: statement.clone(),
+                  };
+                self.environment.borrow_mut().define(name.lexeme.clone(), LoxValue::Callable(Rc::new(function)));
+
             }
         };
         // NOTE: refactored from Ok(), to return LoxValue
@@ -131,6 +136,7 @@ impl Interpreter {
                     args.push(self.evaluate(arg)?);
                 }
 
+                // TODO lees hoofdstuk 10 volledig opnieuw. Klik door de code en vat samen. Ik ben het vergeten. volgens mij definieren we een functie Fuc Stmt (defintie) en een Exp:: Call -> implementatie. De interpreter slaat de definitie Stmt::Funciton op in a LoxValue (callable) in de environement. En tijdens het uitvoeren van de expr, matchen we de callee naam in de env en halen we de info op
                 let function = match callee {
                     LoxValue::Callable(function) => function,
                     _ => bail!("Can only call functions and classes."),
@@ -183,11 +189,15 @@ impl Interpreter {
         statements: &Vec<Stmt>,
         new: Rc<RefCell<Environment>>,
     ) -> Result<()> {
-        let previous = self.environment.clone();
-        self.environment = new;
-        self.interpret(statements)?;
-        self.environment = previous;
-        Ok(())
+        let previous = std::mem::replace(&mut self.environment, new);
+          let result = self.interpret(statements);
+          self.environment = previous;
+        //   match result {
+        //     Ok(_) => Ok(())
+        //     Err(e) => Err(e)
+        // }
+        // NOTE: discard Ok and return the error value
+          result.map(|_| ())
     }
 
     fn evalutate_logical_expression(

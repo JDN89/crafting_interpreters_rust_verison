@@ -87,3 +87,34 @@ for (var b = 1; a < 10000; b = temp + b) {
 
     Ok(())
 }
+
+#[test]
+fn test_call_function() -> anyhow::Result<()> {
+    let input = r#"
+        fun sayHi(first, last) {
+          print "Hi, " + first + " " + last + "!";
+        }
+
+        sayHi("Dear", "Reader");
+
+        "#;
+    let result = test_eval(input)?;
+    assert_eq!(result, LoxValue::Nil);
+    Ok(())
+}
+
+#[test]
+fn test_call_function_twice() -> anyhow::Result<()> {
+    let input = r#"
+        fun greet(name) {
+          print "Hello, " + name + "!";
+        }
+
+        greet("Alice");
+        greet("Bob");
+    "#;
+
+    let result = test_eval(input)?;
+    assert_eq!(result, LoxValue::Nil);
+    Ok(())
+}

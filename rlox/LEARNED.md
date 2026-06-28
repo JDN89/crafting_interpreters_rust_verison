@@ -17,3 +17,14 @@ fn do_something(e: MyCustomError) {
     }
 }
 ```
+
+### ? returns early on error
+
+if you want to execute the rest of the function, don't add ? 
+but store in 
+``` Rust
+let result = do_somehting();
+bla bla
+result.map|() -> |
+
+```

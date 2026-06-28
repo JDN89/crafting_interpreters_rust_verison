@@ -1,6 +1,10 @@
 # TODO
 
-- [ ] [start 10.4.1](https://craftinginterpreters.com/functions.html#interpreting-function-declarations)
+- [ ] resultaat van `cargo run debug.txt`
+ >  "Hi, ""Dear"" ""Reader""!"
+zoek uit waarom we dubbele quotes krijgen
+- [ ] [return statements 10.5](https://craftinginterpreters.com/functions.html#return-statements)
+- [ ] Herlees hoofdstuke 10 volledig en vat samen in learned of notes. Ik be bijna alles vergeten (maand pauze en moet alles eens opnieuw in kaart brengen):Volgens mij werkt het zo: we definiëren een functie met `Stmt::Function` en roepen die later aan met `Expr::Call`. De interpreter slaat de functie-definitie op als een `LoxValue::Callable` in de environment. Wanneer een call-expression wordt uitgevoerd, evalueert de interpreter eerst de callee, zoekt de bijbehorende callable in de environment op, en voert daarna `call(...)` uit.
 
 ## Nice to have
 

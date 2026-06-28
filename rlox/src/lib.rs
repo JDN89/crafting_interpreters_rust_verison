@@ -32,6 +32,8 @@ pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<LoxValue> {
     Ok(result)
 }
 
+// placed calling of run in lib.rs so I can create a test for it.
+// Leave this function as entry point for the integration test
 pub fn test_eval(source: &str) -> Result<LoxValue> {
     let mut interpreter = Interpreter::new();
     eval_internal(source, &mut interpreter)

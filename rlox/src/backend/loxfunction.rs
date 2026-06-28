@@ -14,7 +14,7 @@ use super::value::LoxValue;
 //TODO for Closures this will probably change to at declaration time
 #[derive(Debug, Clone)]
 pub struct LoxFunction {
-    declaration: Stmt,
+    pub declaration: Stmt,
 }
 
 impl LoxCallable for LoxFunction {
@@ -40,7 +40,7 @@ impl LoxCallable for LoxFunction {
             env.borrow_mut().define(param.lexeme.clone(), arg);
         }
 
-        let _ = interpreter.execute_block(body, env);
+         interpreter.execute_block(body, env)?;
 
         Ok(LoxValue::Nil)
     }
