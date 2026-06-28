@@ -136,7 +136,6 @@ impl Interpreter {
                     args.push(self.evaluate(arg)?);
                 }
 
-                // TODO lees hoofdstuk 10 volledig opnieuw. Klik door de code en vat samen. Ik ben het vergeten. volgens mij definieren we een functie Fuc Stmt (defintie) en een Exp:: Call -> implementatie. De interpreter slaat de definitie Stmt::Funciton op in a LoxValue (callable) in de environement. En tijdens het uitvoeren van de expr, matchen we de callee naam in de env en halen we de info op
                 let function = match callee {
                     LoxValue::Callable(function) => function,
                     _ => bail!("Can only call functions and classes."),
