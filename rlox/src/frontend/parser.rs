@@ -241,7 +241,13 @@ impl Parser {
             })
         } else if self.match_ttype(&[TokenType::Print]) {
             self.parse_print_statement()
-        } else if self.match_ttype(&[TokenType::While]) {
+        }
+        else if self.match_ttype(&[TokenType::Return]) {
+            self.parse_return_statement()
+
+        }
+
+    else if self.match_ttype(&[TokenType::While]) {
             self.parse_while_statement()
         } else if self.match_ttype(&[TokenType::LeftBrace]) {
             self.parse_block_statement()
@@ -500,6 +506,19 @@ impl Parser {
             body: statements,
         })
     }
+
+    fn parse_return_statement(&mut self) -> Result<Stmt> {
+        let keyword = self.previous().clone();
+        let value = if !self.check(TokenType::Semicolon) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+
+        self.consume(TokenType::Semicolon, "Expect ';' after return value.")?;
+
+        Ok(Stmt::Return { keyword, value })
+    }
 }
 
 #[cfg(test)]
@@ -558,6 +577,40 @@ mod tests {
                         name: "a".to_string(),
                     },
                 }],
+            }
+        );
+    }
+
+    #[test]
+    fn parse_return_statement_with_value() {
+        let tokens = Lexer::new("return 123;").scan_tokens().unwrap();
+        let mut parser = Parser::new(tokens);
+        let statements = parser.parse().unwrap();
+
+        assert_eq!(statements.len(), 1);
+        assert_eq!(
+            statements[0],
+            Stmt::Return {
+                keyword: Token::new(TokenType::Return, "return".to_string(), 1),
+                value: Some(Expr::Literal {
+                    value: Literal::Float(123.0),
+                }),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_return_statement_without_value() {
+        let tokens = Lexer::new("return;").scan_tokens().unwrap();
+        let mut parser = Parser::new(tokens);
+        let statements = parser.parse().unwrap();
+
+        assert_eq!(statements.len(), 1);
+        assert_eq!(
+            statements[0],
+            Stmt::Return {
+                keyword: Token::new(TokenType::Return, "return".to_string(), 1),
+                value: None,
             }
         );
     }

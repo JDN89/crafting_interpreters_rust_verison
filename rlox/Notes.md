@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] look into: ';' is this indication of an expression statement. check lexer and parser
 - [ ] resultaat van `cargo run debug.txt`
  >  "Hi, ""Dear"" ""Reader""!"
 zoek uit waarom we dubbele quotes krijgen
@@ -18,6 +19,10 @@ zoek uit waarom we dubbele quotes krijgen
 - [ ] Struct of Arrays instead of Array of struct
 
 ## Notes
+
+## chapter 10 functions
+
+Laatste maanden weinig tijd en ik merk dat ik veel zaken van dit hoofdstuk vergeten ben. Best om nog eens door de code te klikken alles te herlezen eens hoofdtuk 10 af is en dan eens samen te vallen. Het is ook op dit punt in 2024 dat ik de mist was ingegaan. Hopelijk vind ik eens een paar uur tijd om het bonvestaande in 1 keer te doen. Vrije tijd vinden als vader is niet altijd even evident. Ik overweeg om 's morgens 30 min vroeg op te staan en telkens even te coden zodat ik dit deel van het boek eindelijk kan afwerken.
 
 ## chapter 9 Control flow
 

@@ -86,6 +86,12 @@ impl Interpreter {
                 self.environment.borrow_mut().define(name.lexeme.clone(), LoxValue::Callable(Rc::new(function)));
 
             }
+            Stmt::Return { value, .. } => {
+                return match value {
+                    Some(expr) => self.evaluate(expr),
+                    None => Ok(LoxValue::Nil),
+                };
+            }
         };
         // NOTE: refactored from Ok(), to return LoxValue
         // Like this I can run and setup integration tests for the interpreter

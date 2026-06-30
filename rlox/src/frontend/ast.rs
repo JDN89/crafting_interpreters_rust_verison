@@ -177,6 +177,10 @@ pub enum Stmt {
     PrintStmt {
         expr: Expr,
     },
+    Return {
+        keyword: Token,
+        value: Option<Expr>,
+    },
     // NOTE: variable declaration laten normaal gezien optional initializers to. var halo;
     Var {
         name: String,
