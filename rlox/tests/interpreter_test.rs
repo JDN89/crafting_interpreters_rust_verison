@@ -63,7 +63,7 @@ fn is_truthy_check() -> anyhow::Result<()> {
 
     let result = test_eval(input)?;
 
-    assert_eq!(result, LoxValue::Str("\"yes\"".to_string()));
+    assert_eq!(result, LoxValue::Str("yes".to_string()));
 
     Ok(())
 }

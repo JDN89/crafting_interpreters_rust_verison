@@ -119,7 +119,10 @@ impl<'a> Lexer<'a> {
         // NOTE consume the enclosing "
         self.advance();
 
-        self.add_token(TokenType::String);
+        // self.add_token(TokenType::String);
+        // NOTE: strip quotes from lexeme
+        let value = &self.source[self.start + 1..self.current -1];
+        self.tokens.push(Token { ttype: TokenType::String, lexeme: value.to_string(), line: self.line });
 
         Ok(())
     }
@@ -385,7 +388,7 @@ mod tests {
 
     #[test]
     fn test_whitespaces_and_return() {
-        let input = "    
+        let input = "
 
           (";
         let lexer = Lexer::new(input);
