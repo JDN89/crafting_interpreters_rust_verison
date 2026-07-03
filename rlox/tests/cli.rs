@@ -1,0 +1,50 @@
+use std::io::Write;
+
+use assert_cmd::Command;
+use predicates::prelude::*;
+use tempfile::NamedTempFile;
+
+fn run_script(source: &str) -> assert_cmd::assert::Assert {
+    let mut file = NamedTempFile::new().unwrap();
+    file.write_all(source.as_bytes()).unwrap();
+    file.flush().unwrap();
+
+    let mut cmd = Command::cargo_bin("rlox").unwrap();
+    cmd.arg(file.path());
+    cmd.assert()
+}
+
+#[test]
+fn prints_arithmetic_results() {
+    run_script("print 1 + 2;")
+        .success()
+        .stdout(predicate::str::contains("3"));
+}
+
+#[test]
+fn prints_concatenated_strings() {
+    run_script("print \"hi\" + \" there\";")
+        .success()
+        .stdout(predicate::str::contains("hi there"));
+}
+
+#[test]
+fn keeps_variable_assignments() {
+    run_script("var a = 1; a = a + 2; print a;")
+        .success()
+        .stdout(predicate::str::contains("3"));
+}
+
+#[test]
+fn respects_block_scopes() {
+    run_script("var a = \"outer\"; { var a = \"inner\"; print a; } print a;")
+        .success()
+        .stdout(predicate::str::contains("inner").and(predicate::str::contains("outer")));
+}
+
+#[test]
+fn reports_runtime_type_errors() {
+    run_script("print \"a\" - \"b\";")
+        .failure()
+        .stderr(predicate::str::contains("can subtract non-numbers!"));
+}

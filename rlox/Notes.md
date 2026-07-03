@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] no longer return last expression. Deviates to much from crafting interpreters. Check todo in interpreter.rs
 - [ ] look into: ';' is this indication of an expression statement. check lexer and parser
 - [ ] resultaat van `cargo run debug.txt`
  >  "Hi, ""Dear"" ""Reader""!"
@@ -21,6 +22,12 @@ zoek uit waarom we dubbele quotes krijgen
 ## Notes
 
 ## chapter 10 functions
+
+### 03-07-2026 REMOVE LOXVALUE AND changed way I test my interpreter via an integration test.
+
+removed the `LoxValue` return path from the interpreter. Test behavior through 'print' and capturing and comparing print output instead. I think this is how most interpreters test and the previous added integration test and 'LoxValue' was adding unnecessary complexity. Plus the flow was deviating to much from the book and I was starting to get confused.
+
+### rambling
 
 Laatste maanden weinig tijd en ik merk dat ik veel zaken van dit hoofdstuk vergeten ben. Best om nog eens door de code te klikken alles te herlezen eens hoofdtuk 10 af is en dan eens samen te vallen. Het is ook op dit punt in 2024 dat ik de mist was ingegaan. Hopelijk vind ik eens een paar uur tijd om het bonvestaande in 1 keer te doen. Vrije tijd vinden als vader is niet altijd even evident. Ik overweeg om 's morgens 30 min vroeg op te staan en telkens even te coden zodat ik dit deel van het boek eindelijk kan afwerken.
 

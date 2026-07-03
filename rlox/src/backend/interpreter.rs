@@ -38,11 +38,11 @@ impl Interpreter {
         }
     }
 
-    fn execute(&mut self, statement: &Stmt) -> Result<LoxValue> {
+    fn execute(&mut self, statement: &Stmt) -> Result<()> {
         match statement {
             Stmt::ExpressionStmt { expr } => {
                 // Discard result and propagate side effect
-                return self.evaluate(expr);
+                self.evaluate(expr)?;
             }
             Stmt::PrintStmt { expr } => {
                 let result = self.evaluate(expr)?;
@@ -87,23 +87,19 @@ impl Interpreter {
 
             }
             Stmt::Return { value, .. } => {
-                return match value {
-                    Some(expr) => self.evaluate(expr),
-                    None => Ok(LoxValue::Nil),
-                };
+                if let Some(expr) = value {
+                    self.evaluate(expr)?;
+                }
             }
         };
-        // NOTE: refactored from Ok(), to return LoxValue
-        // Like this I can run and setup integration tests for the interpreter
-        Ok(LoxValue::Nil)
+        Ok(())
     }
 
-    pub fn interpret(&mut self, statements: &Vec<Stmt>) -> Result<LoxValue> {
-        let mut result = LoxValue::Nil;
+    pub fn interpret(&mut self, statements: &Vec<Stmt>) -> Result<()> {
         for stmt in statements {
-            result = self.execute(stmt)?;
+            self.execute(stmt)?;
         }
-        Ok(result)
+        Ok(())
     }
 
     fn evaluate(&mut self, expr: &Expr) -> Result<LoxValue> {
@@ -300,20 +296,5 @@ fn negate_value(value: LoxValue) -> Result<LoxValue> {
     match value {
         LoxValue::Float(f) => Ok(LoxValue::Float(-f)),
         _ => bail!("Unary applied to a non-number"),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{backend::value::LoxValue, test_eval};
-
-    #[test]
-    fn clock_call_returns_float() {
-        let result = test_eval("clock();").unwrap();
-
-        match result {
-            LoxValue::Float(n) => assert!(n > 0.0),
-            other => panic!("expected float result, got {other:?}"),
-        }
     }
 }

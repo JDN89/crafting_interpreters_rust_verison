@@ -4,12 +4,11 @@ pub mod backend;
 pub mod frontend;
 
 use crate::backend::interpreter::Interpreter;
-use crate::backend::value::LoxValue;
 
 use crate::frontend::lexer::Lexer;
 use crate::frontend::parser::Parser;
 
-fn eval_internal(source: &str, interpreter: &mut Interpreter) -> Result<LoxValue> {
+fn eval_internal(source: &str, interpreter: &mut Interpreter) -> Result<()> {
     let lexer = Lexer::new(source);
     let tokens = lexer.scan_tokens()?;
 
@@ -24,17 +23,6 @@ fn eval_internal(source: &str, interpreter: &mut Interpreter) -> Result<LoxValue
     interpreter.interpret(&statements)
 }
 
-pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<LoxValue> {
-    let result = eval_internal(source, interpreter)?;
-
-    println!("interpreted result {:?}", result);
-
-    Ok(result)
-}
-
-// placed calling of run in lib.rs so I can create a test for it.
-// Leave this function as entry point for the integration test
-pub fn test_eval(source: &str) -> Result<LoxValue> {
-    let mut interpreter = Interpreter::new();
-    eval_internal(source, &mut interpreter)
+pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<()> {
+    eval_internal(source, interpreter)
 }
