@@ -19,6 +19,16 @@ zoek uit waarom we dubbele quotes krijgen
   - [ ] research memory profiling tools in Rust. What is there?
 - [ ] Struct of Arrays instead of Array of struct
 
+## NEXT steps
+- implement VM
+- add types to the language -> evaluate after build ast -> generate bytecode -> types no longer necessary in op code omdat we op dit moment al weten wat de types zijn.
+> Ik denk dat na het afwerken van deze interpreter het leuk zou zijn om direct een VM voor deze interpreter te implementeren. Hiervoor moet ik wel het tweede deel van het boek lezen en de benlangrijkste stukken adopteren, maar dat zal wel moeten lukken. Lees boek uit en begin dan aan VM. Als laatste kan ik dan types toevoegen. Ik denk dat als ik al dit gedaan heb wel de basis van interprters onder de knie zal hebben.
+
+Dan chip 8 emulator
+Daarna boek from zero to prod, maar in Axum en chat app maken (wat bijleren over websockets)
+Dan een OS rust project. Waarschijnlijk zed omdat ik recent Zed ben beginnen gebruiken en zed is NIIIICE. Zeker met die potatoe laptops die we nu gebruiken en intelij niet kunnen draaien.
+Dan even yolo tijd. Ben teveel aan het programmeren.
+
 ## Notes
 
 ## chapter 10 functions
@@ -26,6 +36,7 @@ zoek uit waarom we dubbele quotes krijgen
 ### 04-07-2026 chapter 10.5.1 returning from calls
 Ben verbaasd dat er exceptions gebruikt worden voor controlflow.
 wanneer we een return statement tegenkomen moeten we de stack unwinden tot het punt waar we call() roepen. Een return statement kunnen we tegenkomen in een IfStatement, WhileStatement en BlockStatement. voor all deze statements moeten we kunnen returnen naar call().
+Rust heeft niet het concept van Exceptions en try catch. Er wijn 2 errors: recoverable Result and unrecoverable panic! Ik ga een custom result type moeten definieren Enum met Normal val en Return val (die de Loxvalue) die we returnen wrapped. Normal val staat gelijk aan nil. Kan dit dan aftoetsen in de call(function block) welk Result enum type we returnen -- normal of return
 
 Flow diagram parser -> interpreter voor functions (blijf de flow vergeten, indien er teveel weken tussen zitten);
 
