@@ -23,6 +23,88 @@ zoek uit waarom we dubbele quotes krijgen
 
 ## chapter 10 functions
 
+### 04-07-2026 chapter 10.5.1 returning from calls
+Ben verbaasd dat er exceptions gebruikt worden voor controlflow.
+wanneer we een return statement tegenkomen moeten we de stack unwinden tot het punt waar we call() roepen. Een return statement kunnen we tegenkomen in een IfStatement, WhileStatement en BlockStatement. voor all deze statements moeten we kunnen returnen naar call().
+
+Flow diagram parser -> interpreter voor functions (blijf de flow vergeten, indien er teveel weken tussen zitten);
+
+``` markdown
+
+## Callable
+fun add(a, b) {
+  print a + b;
+}
+
+## Callee
+add(1, 2);
+
+        |
+        v
+
+# parser
+
+## Callable
+Stmt::Function
+  name: "add"
+  params: [a, b]
+  body: [ print a + b; ]
+
+## Callee
+Stmt::ExpressionStmt
+  expr: Expr::Call
+    callee: Expr::Variable("add")
+    arguments: [1, 2]
+
+        |
+        v
+
+# INTERPRETER
+
+interpreter executes function **declaration** (callable)
+
+At runtime we create a LoxValue::Callable which we store in the environment so we can fetch it when we encounter the **callee**. This also mean that we have to declare our functions in chornological order Callable -> Callee. When we encounter the callee, we store the args in an enclosed environment so that they don't collide with the existing args in the parent environment.
+
+environment
+  "add" -> LoxValue::Callable(LoxFunction { declaration: Stmt::Function(...) })
+
+        |
+        v
+
+interpreter evaluates call expression
+
+Expr::Call
+  callee -> Expr::Variable("add")
+             -> environment.get("add")
+             -> LoxFunction
+  args   -> [1, 2]
+
+        |
+        v
+
+LoxFunction::call(self, args)
+
+  create **new enclosed environment**
+        |
+        +-- a = 1
+        +-- b = 2
+
+        |
+        v
+
+execute_block(body, new_env)
+
+  runs:
+    print a + b;
+Short version:
+Stmt::Function  -> stores callable in environment
+Expr::Variable   -> looks it up by name
+Expr::Call       -> invokes it
+```
+
+Ik denk dat na het afwerken van deze interpreter het leuk zou zijn om direct een VM voor deze interpreter te implementeren. Hiervoor moet ik wel het tweede deel van het boek lezen en de benlangrijkste stukken adopteren, maar dat zal wel moeten lukken. Lees boek uit en begin dan aan VM.
+Als laatste kan ik dan types toevoegen. Ik denk dat als ik al dit gedaan heb wel de basis van interprters onder de knie zal hebben.
+
 ### 03-07-2026 REMOVE LOXVALUE AND changed way I test my interpreter via an integration test.
 
 removed the `LoxValue` return path from the interpreter. Test behavior through 'print' and capturing and comparing print output instead. I think this is how most interpreters test and the previous added integration test and 'LoxValue' was adding unnecessary complexity. Plus the flow was deviating to much from the book and I was starting to get confused.

@@ -190,9 +190,9 @@ impl Interpreter {
         statements: &Vec<Stmt>,
         new: Rc<RefCell<Environment>>,
     ) -> Result<()> {
-        let previous = std::mem::replace(&mut self.environment, new);
+        let previous_env = std::mem::replace(&mut self.environment, new);
           let result = self.interpret(statements);
-          self.environment = previous;
+          self.environment = previous_env;
         //   match result {
         //     Ok(_) => Ok(())
         //     Err(e) => Err(e)
