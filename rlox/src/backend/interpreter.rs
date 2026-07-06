@@ -6,6 +6,7 @@ use anyhow::{Result, bail};
 use crate::backend::callable::Clock;
 use crate::backend::environment::Env;
 use crate::backend::environment::Environment;
+use crate::backend::exec_signal::ExecSignal;
 use crate::backend::loxfunction::LoxFunction;
 use crate::frontend::ast::Stmt;
 use crate::frontend::token::TokenType;
@@ -38,16 +39,18 @@ impl Interpreter {
         }
     }
 
-    fn execute(&mut self, statement: &Stmt) -> Result<()> {
+    fn execute(&mut self, statement: &Stmt) -> Result<ExecSignal> {
         match statement {
             Stmt::ExpressionStmt { expr } => {
                 // Discard result and propagate side effect
                 self.evaluate(expr)?;
+                return Ok(ExecSignal::Normal);
             }
             Stmt::PrintStmt { expr } => {
                 let result = self.evaluate(expr)?;
                 // discard result
                 println!("{}", result);
+                return Ok(ExecSignal::Normal);
             }
             Stmt::Var { name, initializer } => {
                 let value = match initializer {
@@ -57,26 +60,34 @@ impl Interpreter {
                 self.environment
                     .borrow_mut()
                     .define(name.to_string(), value);
+                return Ok(ExecSignal::Normal);
             }
-            Stmt::Block { statements } => self.execute_block(
-                statements,
-                // TODO: change clone to ref?
-                Environment::new_enclosed(self.environment.clone()),
-            )?,
+            Stmt::Block { statements } => {
+                return self.execute_block(
+                    statements,
+                    // TODO: change clone to ref?
+                    Environment::new_enclosed(self.environment.clone()),
+                );
+            }
             Stmt::IfStatement {
                 condition,
                 then_branch,
                 else_branch,
             } => {
                 if is_truthy(&self.evaluate(condition)?) {
-                    self.execute(then_branch)?;
+                    return self.execute(then_branch);
                 } else if let Some(stmt) = else_branch {
-                    self.execute(stmt)?;
+                    return self.execute(stmt);
                 }
+
+                return Ok(ExecSignal::Normal);
             }
             Stmt::While { condition, body } => {
                 while is_truthy(&self.evaluate(condition)?) {
-                    let _ = self.execute(body);
+                    match self.execute(body)? {
+                        ExecSignal::Normal => {}
+                        signal @ ExecSignal::Return(_) => return Ok(signal),
+                    }
                 }
             }
             Stmt::Function {name, ..} => {
@@ -87,19 +98,32 @@ impl Interpreter {
 
             }
             Stmt::Return { value, .. } => {
-                if let Some(expr) = value {
-                    self.evaluate(expr)?;
-                }
+                let value = match value {
+                    Some(expr) => self.evaluate(expr)?,
+                    None => LoxValue::Nil,
+                };
+                return Ok(ExecSignal::Return(value));
             }
         };
-        Ok(())
+        Ok(ExecSignal::Normal)
+    }
+
+    fn execute_statements(&mut self, statements: &Vec<Stmt>) -> Result<ExecSignal> {
+        for stmt in statements {
+            match self.execute(stmt)? {
+                ExecSignal::Normal => {}
+                signal => return Ok(signal),
+            }
+        }
+
+        Ok(ExecSignal::Normal)
     }
 
     pub fn interpret(&mut self, statements: &Vec<Stmt>) -> Result<()> {
-        for stmt in statements {
-            self.execute(stmt)?;
+        match self.execute_statements(statements)? {
+            ExecSignal::Normal => Ok(()),
+            ExecSignal::Return(_) => bail!("Can't return from top-level code."),
         }
-        Ok(())
     }
 
     fn evaluate(&mut self, expr: &Expr) -> Result<LoxValue> {
@@ -151,7 +175,10 @@ impl Interpreter {
                     );
                 }
 
+                // TODO: we store the ')' in the ast but don't use it?
                 let _ = paren;
+                // LoxCallable -> native and non-native functions get evaluated at this point.
+                // the function  gets evaluated and returns a value in case of a return value, in the other case we return LoxValue::NIL
                 function.call(self, args)
             }
         }
@@ -189,16 +216,11 @@ impl Interpreter {
         &mut self,
         statements: &Vec<Stmt>,
         new: Rc<RefCell<Environment>>,
-    ) -> Result<()> {
+    ) -> Result<ExecSignal> {
         let previous_env = std::mem::replace(&mut self.environment, new);
-          let result = self.interpret(statements);
-          self.environment = previous_env;
-        //   match result {
-        //     Ok(_) => Ok(())
-        //     Err(e) => Err(e)
-        // }
-        // NOTE: discard Ok and return the error value
-          result.map(|_| ())
+        let result = self.execute_statements(statements);
+        self.environment = previous_env;
+        result
     }
 
     fn evalutate_logical_expression(

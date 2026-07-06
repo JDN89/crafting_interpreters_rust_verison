@@ -33,6 +33,32 @@ Dan even yolo tijd. Ben teveel aan het programmeren.
 
 ## chapter 10 functions
 
+### 06-07-2026
+Lox function flow chart:
+
+#### Declaration part
+In Lox a file gets executed from top to bottom and that's why we need the function declaration before function call. 
+- encounter `Stmt::Function`
+- create `LoxFunction`
+- store the function name in the current environment
+- later, when `Expr::Call` evaluates its `callee`, it looks up the name through `Expr::Variable`
+
+#### call part
+- `Expr::Call`
+  - evaluate `callee`
+    - if it is `Expr::Variable`, retrieve the `LoxFunction` from the environment. We now have a `LoxValue::Callable(Rc<dyn LoxCallable>)` and use the pointer to the function to check `function arity()` and invoke `function.call(self,args)`
+    - check that it is callable
+  - evaluate arguments
+  - call `LoxFunction::call(args)`
+    - create a new enclosed environment
+    - bind parameters to arguments in the new environment
+    - execute the function body with `execute_block()`
+      - if a `return` is hit, it bubbles up as `ExecSignal::Return(value)`
+      - otherwise it returns `ExecSignal::Normal`
+    - restore the previous environment
+    - return the final `LoxValue`
+    - value can then be used to bind to a var, print,...
+
 ### 04-07-2026 chapter 10.5.1 returning from calls
 Ben verbaasd dat er exceptions gebruikt worden voor controlflow.
 wanneer we een return statement tegenkomen moeten we de stack unwinden tot het punt waar we call() roepen. Een return statement kunnen we tegenkomen in een IfStatement, WhileStatement en BlockStatement. voor all deze statements moeten we kunnen returnen naar call().
