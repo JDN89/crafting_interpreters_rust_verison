@@ -9,6 +9,7 @@ use crate::backend::value::LoxValue;
 
 pub type Env = Rc<RefCell<Environment>>;
 
+#[derive(Debug, Clone)]
 pub struct Environment {
     values: HashMap<String, LoxValue>,
     enclosing: Option<Env>,

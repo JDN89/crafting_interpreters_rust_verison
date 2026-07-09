@@ -1,3 +1,4 @@
+
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -93,6 +94,8 @@ impl Interpreter {
             Stmt::Function {name, ..} => {
                 let function = LoxFunction {
                       declaration: statement.clone(),
+                      closure: self.environment.clone(),
+
                   };
                 self.environment.borrow_mut().define(name.lexeme.clone(), LoxValue::Callable(Rc::new(function)));
 

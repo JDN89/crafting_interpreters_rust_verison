@@ -1,5 +1,5 @@
 use crate::{
-    backend::{callable::LoxCallable, environment::Environment, exec_signal::ExecSignal},
+    backend::{callable::LoxCallable, environment::{Env, Environment}, exec_signal::ExecSignal},
     frontend::ast::Stmt,
 };
 
@@ -9,14 +9,15 @@ use super::value::LoxValue;
  Otherwise, recursion would break. If there are multiple calls to the same function in play at the same time,
  each needs its own environment, even though they are all calls to the same function.
 
-That’s why we create a new environment at each call, not at the function declaration
-Then it walks the parameter and argument lists in lockstep. For each pair, it creates a new variable with the parameter’s name and binds it to the argument’s value.
+ At creation time we capture the current environment and store it inside the loxfunction
+ At call time we create a new environemnt whose parent is the captured closure. Then when we execute the loxfunction block when we encounter an Expr::Variable we first check if the variable is present in the current environment and if not we check if it is present in the parent environemnt
 */
 
 //TODO for Closures this will probably change to at declaration time
 #[derive(Debug, Clone)]
 pub struct LoxFunction {
     pub declaration: Stmt,
+    pub closure: Env,
 }
 
 impl LoxCallable for LoxFunction {
@@ -32,7 +33,8 @@ impl LoxCallable for LoxFunction {
         interpreter: &mut super::interpreter::Interpreter,
         arguments: Vec<LoxValue>,
     ) -> anyhow::Result<LoxValue> {
-        let env = Environment::new_enclosed(interpreter.environment.clone());
+
+        let env = Environment::new_enclosed(self.closure.clone());
 
         let Stmt::Function { params, body, .. } = &self.declaration else {
             unreachable!("LoxFunction can only contain a Stmt::LoxFunction")
