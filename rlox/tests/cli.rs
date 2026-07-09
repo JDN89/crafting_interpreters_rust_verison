@@ -48,3 +48,20 @@ fn reports_runtime_type_errors() {
         .failure()
         .stderr(predicate::str::contains("can subtract non-numbers!"));
 }
+
+#[test]
+fn run_fib_test() {
+    let source = "
+    fun fib(n) {
+      if (n <= 1) return n;
+      return fib(n - 2) + fib(n - 1);
+    }
+
+    for (var i = 0; i < 20; i = i + 1) {
+      print fib(i);
+    }
+    ";
+    run_script(source)
+        .success()
+        .stdout(predicate::str::contains("4181"));
+}
