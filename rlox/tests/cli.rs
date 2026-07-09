@@ -50,7 +50,7 @@ fn reports_runtime_type_errors() {
 }
 
 #[test]
-fn run_fib_test() {
+fn fib_test() {
     let source = "
     fun fib(n) {
       if (n <= 1) return n;
@@ -64,4 +64,29 @@ fn run_fib_test() {
     run_script(source)
         .success()
         .stdout(predicate::str::contains("4181"));
+}
+
+#[test]
+fn closures_test() {
+
+    let source = "
+        fun makeCounter() {
+          var i = 0;
+          fun count() {
+            i = i + 1;
+            print i;
+          }
+
+          return count;
+        }
+
+        var counter = makeCounter();
+        counter();
+        counter();
+        ";
+    run_script(source)
+        .success()
+        .stdout(predicate::str::contains("1")
+        .and(predicate::str::contains("2")));
+
 }
