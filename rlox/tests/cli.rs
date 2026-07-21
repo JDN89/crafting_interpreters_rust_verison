@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{ io::Write};
 
 use assert_cmd::Command;
 use predicates::prelude::*;
@@ -88,5 +88,22 @@ fn closures_test() {
         .success()
         .stdout(predicate::str::contains("1")
         .and(predicate::str::contains("2")));
+}
 
+#[test]
+fn static_scope_test() {
+let source = r#"
+    var a = "global";
+    {
+      fun showA() {
+        print a;
+      }
+
+      showA();
+      var a = "block";
+      showA();
+      }"#;
+run_script(source)
+    .success()
+    .stdout(predicate::str::contains("global\nglobal"));
 }
