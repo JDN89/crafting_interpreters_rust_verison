@@ -1,15 +1,15 @@
 [
   {
-    "label": "Debug crafting interpreters",
+    "label": "Debug static scope bug",
     "adapter": "CodeLLDB",
     "request": "launch",
     "build": {
       "command": "cargo",
-      "args": ["build"],
+      "args": ["build"]
     },
-    // sourceLanguages is required for CodeLLDB (not GDB) when using Rust
-    "program": "/home/jan/Repos/crafting_interpreters_rust_verison/rlox/target/debug/rlox",
-    "sourceLanguages": ["rust"],
-    "args": ["/home/jan/Repos/crafting_interpreters_rust_verison/rlox/debug.txt"],
-  },
+    "program": "$ZED_WORKTREE_ROOT/target/debug/rlox",
+    "args": ["$ZED_WORKTREE_ROOT/tests/static_scope_bug.lox"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "sourceLanguages": ["rust"]
+  }
 ]

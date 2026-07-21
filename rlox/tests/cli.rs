@@ -1,4 +1,4 @@
-use std::{ io::Write};
+use std::io::Write;
 
 use assert_cmd::Command;
 use predicates::prelude::*;
@@ -92,18 +92,8 @@ fn closures_test() {
 
 #[test]
 fn static_scope_test() {
-let source = r#"
-    var a = "global";
-    {
-      fun showA() {
-        print a;
-      }
-
-      showA();
-      var a = "block";
-      showA();
-      }"#;
-run_script(source)
-    .success()
-    .stdout(predicate::str::contains("global\nglobal"));
+    let source = include_str!("static_scope_bug.lox");
+    run_script(source)
+        .success()
+        .stdout(predicate::str::contains("global\nglobal"));
 }
