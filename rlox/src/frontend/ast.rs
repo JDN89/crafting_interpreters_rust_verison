@@ -125,6 +125,7 @@ pub enum Expr {
     },
     Variable {
         name: String,
+        scope_depth: Cell<Option<usize>>
     },
     Grouping {
         value: Box<Expr>,
@@ -146,8 +147,15 @@ impl fmt::Display for Expr {
             Expr::Literal { value } => {
                 write!(f, "{value}")
             }
-            Expr::Variable { name } => {
-                write!(f, "{name}")
+            Expr::Variable { name ,
+                scope_depth,
+
+            } => {
+                match scope_depth.get() {
+                    Some(depth) => write!(f, "{name}, depth = {}",depth),
+                    None =>                    write!(f, "{name}"),
+
+                }
             }
             Expr::Assign { name, value } => {
                 write!(f, "({} {})", name, value)

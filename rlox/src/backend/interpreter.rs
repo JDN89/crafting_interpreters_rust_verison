@@ -148,7 +148,7 @@ impl Interpreter {
                     _ => panic!("Unary should not be possible with the operator types *, / , ="),
                 }
             }
-            Expr::Variable { name } => self.environment.borrow().get(name),
+            Expr::Variable { name , scope_depth} => self.environment.borrow().get(name),
             Expr::Grouping { value } => self.evaluate(value),
             Expr::Logical { left, op, right } => {
                 self.evalutate_logical_expression(left, *op, right)
