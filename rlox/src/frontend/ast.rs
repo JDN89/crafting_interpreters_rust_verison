@@ -6,6 +6,7 @@
 // it the naive way first
 
 use core::fmt;
+use std::cell::Cell;
 
 use anyhow::*;
 
@@ -109,6 +110,7 @@ pub enum Expr {
         callee: Box<Expr>,
         paren: TokenType,
         arguments: Vec<Expr>,
+        scope_depth: Cell<Option<usize>>,
     },
     Assign {
         name: String,
@@ -157,9 +159,15 @@ impl fmt::Display for Expr {
                 callee,
                 paren,
                 arguments,
-            } => {
-                write!(f, "({},{},{:#?})", callee, paren, arguments)
-            }
+                scope_depth,
+            } => match scope_depth.get() {
+                Some(depth) => write!(
+                    f,
+                    "({}, {}, {:?}, depth={})",
+                    callee, paren, arguments, depth
+                ),
+                None => write!(f, "({}, {}, {:?})", callee, paren, arguments),
+            },
         }
     }
 }

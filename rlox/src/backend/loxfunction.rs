@@ -1,5 +1,9 @@
 use crate::{
-    backend::{callable::LoxCallable, environment::{Env, Environment}, exec_signal::ExecSignal},
+    backend::{
+        callable::LoxCallable,
+        environment::{Env, Environment},
+        exec_signal::ExecSignal,
+    },
     frontend::ast::Stmt,
 };
 
@@ -33,7 +37,6 @@ impl LoxCallable for LoxFunction {
         interpreter: &mut super::interpreter::Interpreter,
         arguments: Vec<LoxValue>,
     ) -> anyhow::Result<LoxValue> {
-
         let env = Environment::new_enclosed(self.closure.clone());
 
         let Stmt::Function { params, body, .. } = &self.declaration else {

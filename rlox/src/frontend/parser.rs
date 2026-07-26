@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use anyhow::{Context, Result, bail};
 
 use crate::frontend::ast::Literal;
@@ -241,13 +243,9 @@ impl Parser {
             })
         } else if self.match_ttype(&[TokenType::Print]) {
             self.parse_print_statement()
-        }
-        else if self.match_ttype(&[TokenType::Return]) {
+        } else if self.match_ttype(&[TokenType::Return]) {
             self.parse_return_statement()
-
-        }
-
-    else if self.match_ttype(&[TokenType::While]) {
+        } else if self.match_ttype(&[TokenType::While]) {
             self.parse_while_statement()
         } else if self.match_ttype(&[TokenType::LeftBrace]) {
             self.parse_block_statement()
@@ -469,6 +467,7 @@ impl Parser {
             callee: Box::new(callee),
             paren: TokenType::RightParen,
             arguments,
+            scope_depth: Cell::new(None),
         })
     }
 
@@ -550,6 +549,7 @@ mod tests {
                             value: Literal::Float(2.0),
                         },
                     ],
+                    scope_depth: Cell::new(None)
                 },
             }
         );

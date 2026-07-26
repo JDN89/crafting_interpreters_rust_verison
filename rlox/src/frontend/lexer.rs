@@ -121,8 +121,12 @@ impl<'a> Lexer<'a> {
 
         // self.add_token(TokenType::String);
         // NOTE: strip quotes from lexeme
-        let value = &self.source[self.start + 1..self.current -1];
-        self.tokens.push(Token { ttype: TokenType::String, lexeme: value.to_string(), line: self.line });
+        let value = &self.source[self.start + 1..self.current - 1];
+        self.tokens.push(Token {
+            ttype: TokenType::String,
+            lexeme: value.to_string(),
+            line: self.line,
+        });
 
         Ok(())
     }

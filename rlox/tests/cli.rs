@@ -68,7 +68,6 @@ fn fib_test() {
 
 #[test]
 fn closures_test() {
-
     let source = "
         fun makeCounter() {
           var i = 0;
@@ -86,8 +85,7 @@ fn closures_test() {
         ";
     run_script(source)
         .success()
-        .stdout(predicate::str::contains("1")
-        .and(predicate::str::contains("2")));
+        .stdout(predicate::str::contains("1").and(predicate::str::contains("2")));
 }
 
 #[test]
