@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] chapter 11. Proably should store a slice instead of String? lexemes once declared won't change anymore I think? AST and tokens are read only. after finishing the interpreter. Look for ways to optimize this. storing slice, just start and end of the lexeme u32 start and u32 end, and in case you need to look up you just look up in the source code,... At the end so i can see the impact of .clone() in this case
 - [ ] no longer return last expression. Deviates to much from crafting interpreters. Check todo in interpreter.rs
 - [ ] look into: ';' is this indication of an expression statement. check lexer and parser
 - [ ] resultaat van `cargo run debug.txt`
