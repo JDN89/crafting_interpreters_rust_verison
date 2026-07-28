@@ -57,7 +57,7 @@ impl Resolver {
                 scope_depth,
             } => todo!(),
             Expr::Assign { name, value } => todo!(),
-            Expr::Literal { value } => todo!(),
+            Expr::Literal { value: _ } => (),
             Expr::Unary { op, right } => todo!(),
             Expr::Variable { name,scope_depth } => {
                 if let Some(scope) = self.scopes.last() {
@@ -105,6 +105,62 @@ impl Resolver {
     }
 
     fn resolve_local(&self, name: &str, scope_depth: &std::cell::Cell<Option<usize>>) {
-        todo!()
+        for (index,scope) in self.scopes.iter().enumerate().rev() {
+            if scope.contains_key(name) {
+                scope_depth.set(Some(self.scopes.len() - 1 - index));
+                return;
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::frontend::ast::Literal;
+    use std::cell::Cell;
+
+    #[test]
+    fn resolve_sets_variable_scope_depth() {
+        let statements = vec![Stmt::Block {
+            statements: vec![
+                Stmt::Var {
+                    name: "a".to_string(),
+                    initializer: Some(Expr::Literal {
+                        value: Literal::Float(1.0),
+                    }),
+                },
+                Stmt::Block {
+                    statements: vec![Stmt::Var {
+                        name: "b".to_string(),
+                        initializer: Some(Expr::Variable {
+                            name: "a".to_string(),
+                            scope_depth: Cell::new(None),
+                        }),
+                    }],
+                },
+            ],
+        }];
+
+        let mut resolver = Resolver::default();
+        resolver.resolve(&statements).unwrap();
+
+        let inner_block = match &statements[0] {
+            Stmt::Block { statements } => statements,
+            _ => unreachable!(),
+        };
+
+        let inner_var = match &inner_block[1] {
+            Stmt::Block { statements } => match &statements[0] {
+                Stmt::Var {
+                    initializer: Some(Expr::Variable { scope_depth, .. }),
+                    ..
+                } => scope_depth,
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        };
+
+        assert_eq!(inner_var.get(), Some(1));
     }
 }
