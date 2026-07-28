@@ -22,6 +22,12 @@ zoek uit waarom we dubbele quotes krijgen
 - [ ] Struct of Arrays instead of Array of struct
 
 ## NEXT steps
+- [ ] instrumentalize interpreter. Measure performance, mem usage etc.
+- [ ] replace .clone() with lifetime borros. PLACE REWRITE on seperate branch
+- [ ] replace .clone with start u32 (end is the start of the next token -1). PLACE on diff branch and measure
+- [ ] place AST in ARENA of Vec Expr and Vec Stmt -> cleanup after interpreting. Next leaf we can point to via index. Right -> index x left node index y and so forth
+- [ ] transform to WASM and place in blog site
+- [ ] visualize lexing, parsing and interpreting. use plain js and css. blog will be Zola
 - implement VM
 - add types to the language -> evaluate after build ast -> generate bytecode -> types no longer necessary in op code omdat we op dit moment al weten wat de types zijn.
 > Ik denk dat na het afwerken van deze interpreter het leuk zou zijn om direct een VM voor deze interpreter te implementeren. Hiervoor moet ik wel het tweede deel van het boek lezen en de benlangrijkste stukken adopteren, maar dat zal wel moeten lukken. Lees boek uit en begin dan aan VM. Als laatste kan ik dan types toevoegen. Ik denk dat als ik al dit gedaan heb wel de basis van interprters onder de knie zal hebben.
