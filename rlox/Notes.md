@@ -35,6 +35,9 @@ Dan even yolo tijd. Ben teveel aan het programmeren.
 
 ## chapter 10 functions
 
+### 28-07-2026
+Feel that Rust starts to click again. I write faster and have to look up less syntax. apply that butter!
+
 ### 06-07-2026
 Ik denk dat het moeten uitschrijven van een flow chart erop wijst dat ik mij voor dit laatste hoofdstuk teveel op implementeren van de afzonderlijke sub hoofdstukken heb gefocust zonder dat ik het hele plaatje al in mijn hoof had. Beter om hier wat tijd voor te nemen. Anders ga ik weer tegen de bug van 2024 aanlopen. Ik ben hier nu wat tijd voor aan het nemen
 

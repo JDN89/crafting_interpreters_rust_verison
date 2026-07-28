@@ -104,6 +104,7 @@ impl Resolver {
         Ok(())
     }
 
+    // NOTE: in the book the keep this in a seperate map in the interpreter. Reason, otherwise rewrite was needed -- extra pages and ink. Limitation does not exist here, so store in the AST node.
     fn resolve_local(&self, name: &str, scope_depth: &std::cell::Cell<Option<usize>>) {
         for (index,scope) in self.scopes.iter().enumerate().rev() {
             if scope.contains_key(name) {
