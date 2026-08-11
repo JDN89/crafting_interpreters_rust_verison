@@ -41,6 +41,10 @@ Dan even yolo tijd. Ben teveel aan het programmeren.
 
 ## chapter 10 functions
 
+### 11-08-2026
+Moeite om de flow in mijn hoofd te houden. Is mij terug opgevallen nu bij resolving gedeelte. Er zaten wel al enkele weken tussen of maanden sinds ik aan dit hoofdstuk begon, maar toch. 
+Ik ga dit hoofdstuk nog eens moeten lezen en misschien hier nog eens een samenvatting maken en de flow documenteren.
+
 ### 28-07-2026
 Feel that Rust starts to click again. I write faster and have to look up less syntax. apply that butter!
 
