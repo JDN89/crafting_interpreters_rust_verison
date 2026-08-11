@@ -16,6 +16,7 @@ use crate::{
 };
 
 pub struct Interpreter {
+    pub globals: Env,
     pub environment: Env,
 }
 
@@ -28,14 +29,15 @@ impl Default for Interpreter {
 #[allow(dead_code)]
 impl Interpreter {
     pub fn new() -> Self {
-        let environment = Environment::new();
-        environment
+        let globals = Environment::new();
+        globals
             .borrow_mut()
             .define("clock".to_string(), LoxValue::Callable(Rc::new(Clock)));
 
         Interpreter {
             // NOTE: globals is env that is accessbile for everyone
-            environment,
+            globals: globals.clone(),
+            environment: globals,
         }
     }
 
@@ -131,11 +133,23 @@ impl Interpreter {
     fn evaluate(&mut self, expr: &Expr) -> Result<LoxValue> {
         match expr {
             Expr::Binary { left, op, right } => self.evaluate_binary_expression(left, op, right),
-            Expr::Assign { name, value } => {
+            Expr::Assign {
+                name,
+                value,
+                scope_depth,
+            } => {
                 let evaluated_value = self.evaluate(value)?;
-                self.environment
-                    .borrow_mut()
-                    .assign(name, evaluated_value.clone())?;
+
+                match scope_depth.get() {
+                    Some(depth) => Environment::assign_at(
+                        &self.environment,
+                        depth,
+                        name,
+                        evaluated_value.clone(),
+                    )?,
+                    None => self.globals.borrow_mut().assign(name, evaluated_value.clone())?,
+                }
+
                 Ok(evaluated_value)
             }
             Expr::Literal { value } => Ok(LoxValue::from(value.clone())),
@@ -148,7 +162,13 @@ impl Interpreter {
                     _ => panic!("Unary should not be possible with the operator types *, / , ="),
                 }
             }
-            Expr::Variable { name , scope_depth} => self.environment.borrow().get(name),
+            Expr::Variable {
+                name,
+                scope_depth,
+            } => match scope_depth.get() {
+                Some(depth) => Environment::get_at(&self.environment, depth, name),
+                None => self.globals.borrow().get(name),
+            },
             Expr::Grouping { value } => self.evaluate(value),
             Expr::Logical { left, op, right } => {
                 self.evalutate_logical_expression(left, *op, right)
@@ -157,7 +177,6 @@ impl Interpreter {
                 callee,
                 paren,
                 arguments,
-                scope_depth,
             } => {
                 let callee = self.evaluate(callee)?;
                 let mut args = Vec::new();

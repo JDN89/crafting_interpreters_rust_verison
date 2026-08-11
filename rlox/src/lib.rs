@@ -7,6 +7,7 @@ use crate::backend::interpreter::Interpreter;
 
 use crate::frontend::lexer::Lexer;
 use crate::frontend::parser::Parser;
+use crate::frontend::resolver::Resolver;
 
 fn eval_internal(source: &str, interpreter: &mut Interpreter) -> Result<()> {
     let lexer = Lexer::new(source);
@@ -14,6 +15,8 @@ fn eval_internal(source: &str, interpreter: &mut Interpreter) -> Result<()> {
 
     let mut parser = Parser::new(tokens);
     let statements = parser.parse()?;
+    let mut resolver = Resolver::default();
+    resolver.resolve(&statements)?;
 
     //NOTE ran into a bug where the environemnt inside interpreter got cleared during running of the
     //repl with each new line. the issues was that run is owning and recreating the environment with

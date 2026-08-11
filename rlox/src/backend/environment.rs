@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use anyhow::Ok;
 use anyhow::Result;
 
 use crate::backend::value::LoxValue;
@@ -44,6 +43,44 @@ impl Environment {
 
     pub fn define(&mut self, name: String, value: LoxValue) {
         self.values.insert(name.clone(), value.clone());
+    }
+
+    fn ancestor(env: &Env, distance: usize) -> Result<Env> {
+        let mut current = env.clone();
+
+        for _ in 0..distance {
+            let enclosing = current
+                .borrow()
+                .enclosing
+                .clone()
+                .ok_or_else(|| anyhow::anyhow!("Missing enclosing environment."))?;
+            current = enclosing;
+        }
+
+        Ok(current)
+    }
+
+    pub fn assign_at(env: &Env, distance: usize, name: &str, value: LoxValue) -> Result<()> {
+        let ancestor = Self::ancestor(env, distance)?;
+        let mut ancestor = ancestor.borrow_mut();
+
+        if ancestor.values.contains_key(name) {
+            ancestor.values.insert(name.to_string(), value);
+            return Ok(());
+        }
+
+        anyhow::bail!("Undefined variable {}", name);
+    }
+
+    pub fn get_at(env: &Env, distance: usize, name: &str) -> Result<LoxValue> {
+        let ancestor = Self::ancestor(env, distance)?;
+        let ancestor = ancestor.borrow();
+
+        ancestor
+            .values
+            .get(name)
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("Undefined variable {}", name))
     }
 
     pub fn assign(&mut self, name: &str, value: LoxValue) -> Result<()> {

@@ -311,6 +311,7 @@ impl Parser {
                 return Ok(Expr::Assign {
                     name: name.clone(),
                     value: Box::new(value),
+                    scope_depth: Cell::new(None)
                 });
             }
             bail!("Token: {} is an invalid assingment target.", &equals);
@@ -468,7 +469,6 @@ impl Parser {
             callee: Box::new(callee),
             paren: TokenType::RightParen,
             arguments,
-            scope_depth: Cell::new(None),
         })
     }
 
@@ -551,7 +551,6 @@ mod tests {
                             value: Literal::Float(2.0),
                         },
                     ],
-                    scope_depth: Cell::new(None)
                 },
             }
         );

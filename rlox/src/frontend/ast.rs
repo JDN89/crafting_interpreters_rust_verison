@@ -110,11 +110,11 @@ pub enum Expr {
         callee: Box<Expr>,
         paren: TokenType,
         arguments: Vec<Expr>,
-        scope_depth: Cell<Option<usize>>,
     },
     Assign {
         name: String,
         value: Box<Expr>,
+        scope_depth: Cell<Option<usize>>,
     },
     Literal {
         value: Literal,
@@ -157,7 +157,7 @@ impl fmt::Display for Expr {
 
                 }
             }
-            Expr::Assign { name, value } => {
+            Expr::Assign { name, value, .. } => {
                 write!(f, "({} {})", name, value)
             }
             Expr::Logical { left, op, right } => {
@@ -167,15 +167,7 @@ impl fmt::Display for Expr {
                 callee,
                 paren,
                 arguments,
-                scope_depth,
-            } => match scope_depth.get() {
-                Some(depth) => write!(
-                    f,
-                    "({}, {}, {:?}, depth={})",
-                    callee, paren, arguments, depth
-                ),
-                None => write!(f, "({}, {}, {:?})", callee, paren, arguments),
-            },
+            } => write!(f, "({}, {}, {:?})", callee, paren, arguments),
         }
     }
 }
