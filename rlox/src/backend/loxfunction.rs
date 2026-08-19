@@ -17,7 +17,6 @@ use super::value::LoxValue;
  At call time we create a new environemnt whose parent is the captured closure. Then when we execute the loxfunction block when we encounter an Expr::Variable we first check if the variable is present in the current environment and if not we check if it is present in the parent environemnt
 */
 
-//TODO for Closures this will probably change to at declaration time
 #[derive(Debug, Clone)]
 pub struct LoxFunction {
     pub declaration: Stmt,

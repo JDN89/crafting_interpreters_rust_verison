@@ -5,7 +5,6 @@ use phf::phf_map;
 use crate::frontend::token::{Token, TokenType};
 
 // NOTE [source code phf](https://docs.rs/phf/latest/phf/)
-
 static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "and" => TokenType::And,
     "class" => TokenType::Class,
@@ -226,22 +225,20 @@ impl<'a> Lexer<'a> {
                 // NOTE /* is block comment */
                 else if self.match_char('*') {
                     // NOTE consume al chars until we encounter the closing '*/'
-                    while self.peek() != '*' && self.peek_next() != '/' && !self.is_at_end() {
+                    while !(self.peek() == '*' && self.peek_next() == '/') && !self.is_at_end() {
                         if self.peek() == '\n' {
                             self.line += 1;
                         }
                         self.advance();
                     }
 
-                    // NOTE consume '*/' characters
-                    self.advance();
-                    self.advance();
-
-                    // NOTE bug if we are at end or if we don't find the terminating '/' for the block
-                    // comment
                     if self.is_at_end() {
                         bail!("[Line {}] Error: Unterminated block comment!", self.line);
                     }
+
+                    // NOTE consume '*/' characters
+                    self.advance();
+                    self.advance();
                 } else {
                     // NOTE only '/' for division
                     self.add_token(TokenType::Slash);
@@ -376,19 +373,19 @@ mod tests {
         assert_eq!(tokens[0].ttype, TokenType::Eof);
     }
 
-    //TODO merge with above and make one consecutive test
-    // #[test]
-    // fn test_block_comment_part2() {
-    //     let input = "/* This is a block comment
-    //
-    //         and has a newline
-    //         *|
-    //         ";
-    //     let mut lexer = Lexer::new(input);
-    //     let tokens = lexer.scan_tokens().unwrap();
-    //     assert!(tokens.len() == 1);
-    //     assert_eq!(tokens[0].ttype, TokenType::Eof);
-    // }
+    #[test]
+    fn test_unterminated_block_comment() {
+        let input = "/* This is a block comment
+
+            and has a newline
+            ";
+        let lexer = Lexer::new(input);
+        let result = lexer.scan_tokens();
+
+        assert!(result.is_err());
+        let error_msg = result.unwrap_err().to_string();
+        assert!(error_msg.contains("Unterminated block comment"));
+    }
 
     #[test]
     fn test_whitespaces_and_return() {

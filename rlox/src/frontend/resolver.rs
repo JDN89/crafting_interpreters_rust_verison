@@ -114,7 +114,6 @@ impl Resolver {
                         bail!("Can't read local variable in its own initializer.");
                     }
                 }
-                // TODO: we store the depth in the AST itself!!
                 self.resolve_local(name,scope_depth)
             }
             Expr::Grouping { value } => self.resolve_expression(value)?,

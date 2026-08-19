@@ -38,7 +38,6 @@ impl fmt::Display for Token {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-#[allow(dead_code)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,

@@ -1,10 +1,3 @@
-// TODO: I am doubting if I should immediatley use an allocator and push the expr on it, that
-// returns an exprId. Binary
-// would become
-// {left: exprId, operator:..., right: ExprId}. This way I don't have to mess with Box, the expr
-// won't be spread out in memory,... But I want to see the memory and performance gains, so lets do
-// it the naive way first
-
 use core::fmt;
 use std::cell::Cell;
 
@@ -12,11 +5,6 @@ use anyhow::*;
 
 use crate::frontend::token::{Token, TokenType};
 
-// TODO this enum is exactly the same as the token Literal enum. Something's got to go!!
-// TODO even the source can go on the allocator. when we need a substring just store the start and
-// end point as ints and when they are actually needed just index into the source code and extract
-// the slice like that. I think for now I'll just clone the thing and see how much performance I
-// gain by the above approach. I don't want to drag the lifetimes around
 #[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
     Str(String),
@@ -36,7 +24,6 @@ impl fmt::Display for Literal {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-#[allow(dead_code)]
 pub enum Operator {
     Plus = 0,
     Minus = 1,
@@ -94,7 +81,6 @@ impl fmt::Display for Operator {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
 pub enum Expr {
     Logical {
         left: Box<Expr>,
@@ -189,7 +175,7 @@ pub enum Stmt {
         keyword: Token,
         value: Option<Expr>,
     },
-    // NOTE: variable declaration laten normaal gezien optional initializers to. var halo;
+    // NOTE: var declaration has optional initializer
     Var {
         name: String,
         initializer: Option<Expr>,

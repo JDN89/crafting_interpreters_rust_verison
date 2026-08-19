@@ -26,7 +26,6 @@ impl Default for Interpreter {
     }
 }
 
-#[allow(dead_code)]
 impl Interpreter {
     pub fn new() -> Self {
         let globals = Environment::new();
@@ -67,7 +66,6 @@ impl Interpreter {
             Stmt::Block { statements } => {
                 return self.execute_block(
                     statements,
-                    // TODO: change clone to ref?
                     Environment::new_enclosed(self.environment.clone()),
                 );
             }
@@ -197,7 +195,6 @@ impl Interpreter {
                     );
                 }
 
-                // TODO: we store the ')' in the ast but don't use it?
                 let _ = paren;
                 // LoxCallable -> native and non-native functions get evaluated at this point.
                 // the function  gets evaluated and returns a value in case of a return value, in the other case we return LoxValue::NIL

@@ -7,17 +7,19 @@ use crate::frontend::ast::Stmt;
 use crate::frontend::ast::{Expr, Operator};
 use crate::frontend::token::{Token, TokenType};
 
-// TODO: I just realised that Everytime I allocate a token to an arena i can just pas Vec<i32>
-// around faster then passing Vec<&Token> references around. I think ref takes more memory and is a
-// bit slower then indexing into an vec?
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
+    errors: Vec<String>,
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Parser { tokens, current: 0 }
+        Parser {
+            tokens,
+            current: 0,
+            errors: Vec::new(),
+        }
     }
 
     /// Checks whether the current token matches any token type in `types`.
@@ -204,7 +206,6 @@ impl Parser {
         )
     }
 
-    // TODO implement panic mode
     fn consume(&mut self, ttype: TokenType, arg: &str) -> Result<()> {
         if self.check(ttype) {
             self.advance();
@@ -217,10 +218,16 @@ impl Parser {
     pub fn parse(&mut self) -> Result<Vec<Stmt>> {
         let mut statements: Vec<Stmt> = Vec::new();
         while !self.is_at_end() {
-            statements.push(self.parse_declaration()?);
+            if let Some(statement) = self.parse_declaration() {
+                statements.push(statement);
+            }
         }
 
-        Ok(statements)
+        if self.errors.is_empty() {
+            Ok(statements)
+        } else {
+            bail!(self.errors.join("\n"))
+        }
     }
 
     fn parse_statement(&mut self) -> Result<Stmt> {
@@ -255,15 +262,22 @@ impl Parser {
         }
     }
 
-    // TODO: voorzie error recovery -> consume all tokens until next statement declaration
-    fn parse_declaration(&mut self) -> Result<Stmt> {
-        if self.match_ttype(&[TokenType::Fun]) {
-            return self.parse_function();
-        }
-        if self.match_ttype(&[TokenType::Var]) {
-            Ok(self.parse_var_declaration()?)
+    fn parse_declaration(&mut self) -> Option<Stmt> {
+        let result = if self.match_ttype(&[TokenType::Fun]) {
+            self.parse_function()
+        } else if self.match_ttype(&[TokenType::Var]) {
+            self.parse_var_declaration()
         } else {
             self.parse_statement()
+        };
+
+        match result {
+            Ok(statement) => Some(statement),
+            Err(err) => {
+                self.errors.push(err.to_string());
+                self.synchronize();
+                None
+            }
         }
     }
 
@@ -323,11 +337,35 @@ impl Parser {
         let mut statements: Vec<Stmt> = Vec::new();
 
         while !self.check(TokenType::RightBrace) && !self.is_at_end() {
-            statements.push(self.parse_declaration()?)
+            if let Some(statement) = self.parse_declaration() {
+                statements.push(statement)
+            }
         }
 
         self.consume(TokenType::RightBrace, "Expected '}' after block")?;
         Ok(statements)
+    }
+
+    fn synchronize(&mut self) {
+        self.advance();
+
+        while !self.is_at_end() {
+            if self.previous().ttype == TokenType::Semicolon {
+                return;
+            }
+
+            match self.peek().ttype {
+                TokenType::Class
+                | TokenType::Fun
+                | TokenType::Var
+                | TokenType::For
+                | TokenType::If
+                | TokenType::While
+                | TokenType::Print
+                | TokenType::Return => return,
+                _ => self.advance(),
+            }
+        }
     }
 
     fn parse_block_statement(&mut self) -> Result<Stmt> {
@@ -375,8 +413,6 @@ impl Parser {
         })
     }
 
-    // first create the Some...
-    // then if let some to get the value out
     fn parse_for_statement(&mut self) -> Result<Stmt> {
         self.consume(TokenType::LeftParen, "Expect '(' after 'for'")?;
 
@@ -614,6 +650,29 @@ mod tests {
                 keyword: Token::new(TokenType::Return, "return".to_string(), 1),
                 value: None,
             }
+        );
+    }
+
+    #[test]
+    fn recovers_after_syntax_error_and_parses_next_statement() {
+        let tokens = Lexer::new("var a = ; print 123;").scan_tokens().unwrap();
+        let mut parser = Parser::new(tokens);
+        let mut statements = Vec::new();
+
+        while !parser.is_at_end() {
+            if let Some(statement) = parser.parse_declaration() {
+                statements.push(statement);
+            }
+        }
+
+        assert_eq!(parser.errors.len(), 1);
+        assert_eq!(
+            statements,
+            vec![Stmt::PrintStmt {
+                expr: Expr::Literal {
+                    value: Literal::Float(123.0),
+                },
+            }]
         );
     }
 }

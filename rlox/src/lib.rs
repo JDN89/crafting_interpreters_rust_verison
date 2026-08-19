@@ -9,7 +9,7 @@ use crate::frontend::lexer::Lexer;
 use crate::frontend::parser::Parser;
 use crate::frontend::resolver::Resolver;
 
-fn eval_internal(source: &str, interpreter: &mut Interpreter) -> Result<()> {
+pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<()> {
     let lexer = Lexer::new(source);
     let tokens = lexer.scan_tokens()?;
 
@@ -24,8 +24,4 @@ fn eval_internal(source: &str, interpreter: &mut Interpreter) -> Result<()> {
     //for now for educational purposes
     // let mut interpreter = Interpreter::new();
     interpreter.interpret(&statements)
-}
-
-pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<()> {
-    eval_internal(source, interpreter)
 }
