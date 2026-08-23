@@ -67,3 +67,5 @@ Benchmark 1: target/release/rlox fib.lox
     +    2.06%     2.06%        [.] core::ptr::drop_glue::<core::iter::adapters::zip::Zip<alloc::vec::into_iter::In▒
     +    1.73%     1.73%        [.] <rlox::backend::environment::Environment>::get       
     ```
+
+### NOTES

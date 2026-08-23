@@ -40,22 +40,22 @@ impl Interpreter {
         }
     }
 
-    fn execute(&mut self, statement: &Stmt) -> Result<ExecSignal> {
+    fn execute_statement(&mut self, statement: &Stmt) -> Result<ExecSignal> {
         match statement {
             Stmt::ExpressionStmt { expr } => {
                 // Discard result and propagate side effect
-                self.evaluate(expr)?;
+                self.evaluate_expression(expr)?;
                 return Ok(ExecSignal::Normal);
             }
             Stmt::PrintStmt { expr } => {
-                let result = self.evaluate(expr)?;
+                let result = self.evaluate_expression(expr)?;
                 // discard result
                 println!("{}", result);
                 return Ok(ExecSignal::Normal);
             }
             Stmt::Var { name, initializer } => {
                 let value = match initializer {
-                    Some(expr) => self.evaluate(expr)?,
+                    Some(expr) => self.evaluate_expression(expr)?,
                     None => LoxValue::Nil,
                 };
                 self.environment
@@ -74,17 +74,17 @@ impl Interpreter {
                 then_branch,
                 else_branch,
             } => {
-                if is_truthy(&self.evaluate(condition)?) {
-                    return self.execute(then_branch);
+                if is_truthy(&self.evaluate_expression(condition)?) {
+                    return self.execute_statement(then_branch);
                 } else if let Some(stmt) = else_branch {
-                    return self.execute(stmt);
+                    return self.execute_statement(stmt);
                 }
 
                 return Ok(ExecSignal::Normal);
             }
             Stmt::While { condition, body } => {
-                while is_truthy(&self.evaluate(condition)?) {
-                    match self.execute(body)? {
+                while is_truthy(&self.evaluate_expression(condition)?) {
+                    match self.execute_statement(body)? {
                         ExecSignal::Normal => {}
                         signal @ ExecSignal::Return(_) => return Ok(signal),
                     }
@@ -101,7 +101,7 @@ impl Interpreter {
             }
             Stmt::Return { value, .. } => {
                 let value = match value {
-                    Some(expr) => self.evaluate(expr)?,
+                    Some(expr) => self.evaluate_expression(expr)?,
                     None => LoxValue::Nil,
                 };
                 return Ok(ExecSignal::Return(value));
@@ -112,7 +112,7 @@ impl Interpreter {
 
     fn execute_statements(&mut self, statements: &Vec<Stmt>) -> Result<ExecSignal> {
         for stmt in statements {
-            match self.execute(stmt)? {
+            match self.execute_statement(stmt)? {
                 ExecSignal::Normal => {}
                 signal => return Ok(signal),
             }
@@ -128,7 +128,7 @@ impl Interpreter {
         }
     }
 
-    fn evaluate(&mut self, expr: &Expr) -> Result<LoxValue> {
+    fn evaluate_expression(&mut self, expr: &Expr) -> Result<LoxValue> {
         match expr {
             Expr::Binary { left, op, right } => self.evaluate_binary_expression(left, op, right),
             Expr::Assign {
@@ -136,7 +136,7 @@ impl Interpreter {
                 value,
                 scope_depth,
             } => {
-                let evaluated_value = self.evaluate(value)?;
+                let evaluated_value = self.evaluate_expression(value)?;
 
                 match scope_depth.get() {
                     Some(depth) => Environment::assign_at(
@@ -145,14 +145,17 @@ impl Interpreter {
                         name,
                         evaluated_value.clone(),
                     )?,
-                    None => self.globals.borrow_mut().assign(name, evaluated_value.clone())?,
+                    None => self
+                        .globals
+                        .borrow_mut()
+                        .assign(name, evaluated_value.clone())?,
                 }
 
                 Ok(evaluated_value)
             }
             Expr::Literal { value } => Ok(LoxValue::from(value.clone())),
             Expr::Unary { op, right } => {
-                let right = self.evaluate(right)?;
+                let right = self.evaluate_expression(right)?;
                 match op {
                     Operator::Plus => Ok(right),
                     Operator::Minus => negate_value(right),
@@ -160,14 +163,11 @@ impl Interpreter {
                     _ => panic!("Unary should not be possible with the operator types *, / , ="),
                 }
             }
-            Expr::Variable {
-                name,
-                scope_depth,
-            } => match scope_depth.get() {
+            Expr::Variable { name, scope_depth } => match scope_depth.get() {
                 Some(depth) => Environment::get_at(&self.environment, depth, name),
                 None => self.globals.borrow().get(name),
             },
-            Expr::Grouping { value } => self.evaluate(value),
+            Expr::Grouping { value } => self.evaluate_expression(value),
             Expr::Logical { left, op, right } => {
                 self.evalutate_logical_expression(left, *op, right)
             }
@@ -176,10 +176,10 @@ impl Interpreter {
                 paren,
                 arguments,
             } => {
-                let callee = self.evaluate(callee)?;
+                let callee = self.evaluate_expression(callee)?;
                 let mut args = Vec::new();
                 for arg in arguments {
-                    args.push(self.evaluate(arg)?);
+                    args.push(self.evaluate_expression(arg)?);
                 }
 
                 let function = match callee {
@@ -209,8 +209,8 @@ impl Interpreter {
         op: &Operator,
         right: &Expr,
     ) -> Result<LoxValue> {
-        let left = self.evaluate(left)?;
-        let right = self.evaluate(right)?;
+        let left = self.evaluate_expression(left)?;
+        let right = self.evaluate_expression(right)?;
         match op {
             Operator::Plus => addition(left, right),
             Operator::Minus => subtraction(left, right),
@@ -248,7 +248,7 @@ impl Interpreter {
         op: TokenType,
         right: &Expr,
     ) -> Result<LoxValue> {
-        let left = self.evaluate(left)?;
+        let left = self.evaluate_expression(left)?;
 
         if op == TokenType::Or {
             if is_truthy(&left) {
@@ -261,7 +261,7 @@ impl Interpreter {
             }
         }
 
-        self.evaluate(right)
+        self.evaluate_expression(right)
     }
 }
 

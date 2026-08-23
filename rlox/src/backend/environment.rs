@@ -41,8 +41,12 @@ impl Environment {
         }))
     }
 
+    // does the lifetime have to persist after this?
+    // No, we are in the interpreter. we store the name and value in the environment so as
+    // to keep track of it for the duration of the program. But we don't need to keep it around after
+    // the function returns, so no clone is needed.
     pub fn define(&mut self, name: String, value: LoxValue) {
-        self.values.insert(name.clone(), value.clone());
+        self.values.insert(name, value);
     }
 
     fn ancestor(env: &Env, distance: usize) -> Result<Env> {
