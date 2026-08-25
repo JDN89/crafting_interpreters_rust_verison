@@ -33,7 +33,8 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(source: &'a str) -> Self {
+    #[must_use]
+    pub const fn new(source: &'a str) -> Self {
         Lexer {
             source,
             tokens: Vec::new(),
@@ -43,10 +44,12 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn is_at_end(&self) -> bool {
+    const fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
     }
 
+    // TODO iterator might be slow. O(n) vs O(1). We beginnen alitjd vanaf start. kunnen we niet gewoon in de juiste positie indexen?
+    #[allow(clippy::expect_used)]
     fn advance(&mut self) -> char {
         let c = self
             .source

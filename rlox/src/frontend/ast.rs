@@ -1,7 +1,7 @@
 use core::fmt;
 use std::cell::Cell;
 
-use anyhow::*;
+use anyhow::{Error, Ok, Result, anyhow};
 
 use crate::frontend::token::{Token, TokenType};
 
@@ -15,10 +15,10 @@ pub enum Literal {
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Literal::Str(s) => write!(f, "{s}"),
-            Literal::Boolean(b) => write!(f, "{b}"),
-            Literal::Float(n) => write!(f, "{n}"),
-            Literal::Nil => write!(f, "nill"),
+            Self::Str(s) => write!(f, "{s}"),
+            Self::Boolean(b) => write!(f, "{b}"),
+            Self::Float(n) => write!(f, "{n}"),
+            Self::Nil => write!(f, "nill"),
         }
     }
 }
@@ -41,21 +41,20 @@ pub enum Operator {
 impl Operator {
     pub fn from_token_type(ttype: TokenType) -> Result<Self, Error> {
         match ttype {
-            TokenType::Plus => Ok(Operator::Plus),
-            TokenType::Minus => Ok(Operator::Minus),
-            TokenType::Star => Ok(Operator::Star),
-            TokenType::Slash => Ok(Operator::Slash),
-            TokenType::Bang => Ok(Operator::Bang),
-            TokenType::EqualEqual => Ok(Operator::EqualEqual),
-            TokenType::BangEqual => Ok(Operator::BangEqual),
-            TokenType::Less => Ok(Operator::Less),
-            TokenType::LessEqual => Ok(Operator::LessEqual),
-            TokenType::Greater => Ok(Operator::Greater),
-            TokenType::GreaterEqual => Ok(Operator::GreaterEqual),
-            TokenType::Equal => Ok(Operator::Equal),
+            TokenType::Plus => Ok(Self::Plus),
+            TokenType::Minus => Ok(Self::Minus),
+            TokenType::Star => Ok(Self::Star),
+            TokenType::Slash => Ok(Self::Slash),
+            TokenType::Bang => Ok(Self::Bang),
+            TokenType::EqualEqual => Ok(Self::EqualEqual),
+            TokenType::BangEqual => Ok(Self::BangEqual),
+            TokenType::Less => Ok(Self::Less),
+            TokenType::LessEqual => Ok(Self::LessEqual),
+            TokenType::Greater => Ok(Self::Greater),
+            TokenType::GreaterEqual => Ok(Self::GreaterEqual),
+            TokenType::Equal => Ok(Self::Equal),
             _ => Err(anyhow!(
-                "[TokenType {:?}] doesn't have a matching operator",
-                ttype
+                "[TokenType {ttype:?}] doesn't have a matching operator"
             )),
         }
     }
@@ -63,18 +62,18 @@ impl Operator {
 impl fmt::Display for Operator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Operator::Plus => "+",
-            Operator::Minus => "-",
-            Operator::Star => "*",
-            Operator::Slash => "/",
-            Operator::Equal => "=",
-            Operator::Bang => "!",
-            Operator::Greater => ">",
-            Operator::GreaterEqual => ">=",
-            Operator::Less => "<",
-            Operator::LessEqual => "<=",
-            Operator::BangEqual => "!=",
-            Operator::EqualEqual => "==",
+            Self::Plus => "+",
+            Self::Minus => "-",
+            Self::Star => "*",
+            Self::Slash => "/",
+            Self::Equal => "=",
+            Self::Bang => "!",
+            Self::Greater => ">",
+            Self::GreaterEqual => ">=",
+            Self::Less => "<",
+            Self::LessEqual => "<=",
+            Self::BangEqual => "!=",
+            Self::EqualEqual => "==",
         };
         write!(f, "{s}")
     }
@@ -83,23 +82,23 @@ impl fmt::Display for Operator {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Logical {
-        left: Box<Expr>,
+        left: Box<Self>,
         op: TokenType,
-        right: Box<Expr>,
+        right: Box<Self>,
     },
     Binary {
-        left: Box<Expr>,
+        left: Box<Self>,
         op: Operator,
-        right: Box<Expr>,
+        right: Box<Self>,
     },
     Call {
-        callee: Box<Expr>,
+        callee: Box<Self>,
         paren: TokenType,
-        arguments: Vec<Expr>,
+        arguments: Vec<Self>,
     },
     Assign {
         name: String,
-        value: Box<Expr>,
+        value: Box<Self>,
         scope_depth: Cell<Option<usize>>,
     },
     Literal {
@@ -107,53 +106,47 @@ pub enum Expr {
     },
     Unary {
         op: Operator,
-        right: Box<Expr>,
+        right: Box<Self>,
     },
     Variable {
         name: String,
-        scope_depth: Cell<Option<usize>>
+        scope_depth: Cell<Option<usize>>,
     },
     Grouping {
-        value: Box<Expr>,
+        value: Box<Self>,
     },
 }
 
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Expr::Binary { left, op, right } => {
-                write!(f, "({} {} {})", op, left, right)
+            Self::Binary { left, op, right } => {
+                write!(f, "({op} {left} {right})")
             }
-            Expr::Unary { op, right } => {
-                write!(f, "({} {})", op, right)
+            Self::Unary { op, right } => {
+                write!(f, "({op} {right})")
             }
-            Expr::Grouping { value } => {
-                write!(f, "(group {})", value)
+            Self::Grouping { value } => {
+                write!(f, "(group {value})")
             }
-            Expr::Literal { value } => {
+            Self::Literal { value } => {
                 write!(f, "{value}")
             }
-            Expr::Variable { name ,
-                scope_depth,
-
-            } => {
-                match scope_depth.get() {
-                    Some(depth) => write!(f, "{name}, depth = {}",depth),
-                    None =>                    write!(f, "{name}"),
-
-                }
+            Self::Variable { name, scope_depth } => match scope_depth.get() {
+                Some(depth) => write!(f, "{name}, depth = {depth}"),
+                None => write!(f, "{name}"),
+            },
+            Self::Assign { name, value, .. } => {
+                write!(f, "({name} {value})")
             }
-            Expr::Assign { name, value, .. } => {
-                write!(f, "({} {})", name, value)
+            Self::Logical { left, op, right } => {
+                write!(f, "({op} {left} {right})")
             }
-            Expr::Logical { left, op, right } => {
-                write!(f, "({} {} {})", op, left, right)
-            }
-            Expr::Call {
+            Self::Call {
                 callee,
                 paren,
                 arguments,
-            } => write!(f, "({}, {}, {:?})", callee, paren, arguments),
+            } => write!(f, "({callee}, {paren}, {arguments:?})"),
         }
     }
 }
@@ -162,8 +155,8 @@ impl fmt::Display for Expr {
 pub enum Stmt {
     IfStatement {
         condition: Expr,
-        then_branch: Box<Stmt>,
-        else_branch: Option<Box<Stmt>>,
+        then_branch: Box<Self>,
+        else_branch: Option<Box<Self>>,
     },
     ExpressionStmt {
         expr: Expr,
@@ -181,16 +174,16 @@ pub enum Stmt {
         initializer: Option<Expr>,
     },
     Block {
-        statements: Vec<Stmt>,
+        statements: Vec<Self>,
     },
     While {
         condition: Expr,
-        body: Box<Stmt>,
+        body: Box<Self>,
     },
 
     Function {
         name: Token,
         params: Vec<Token>,
-        body: Vec<Stmt>,
+        body: Vec<Self>,
     },
 }

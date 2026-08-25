@@ -21,8 +21,9 @@ pub struct Environment {
 // }
 
 impl Environment {
+    #[must_use]
     pub fn new() -> Env {
-        Rc::new(RefCell::new(Environment {
+        Rc::new(RefCell::new(Self {
             values: HashMap::new(),
             enclosing: None,
         }))
@@ -35,7 +36,7 @@ impl Environment {
     /// new environment starts empty, but any lookup or assignment that cannot
     /// be satisfied locally will fall back to the enclosing environment.
     pub fn new_enclosed(enclosing: Env) -> Env {
-        Rc::new(RefCell::new(Environment {
+        Rc::new(RefCell::new(Self {
             values: HashMap::new(),
             enclosing: Some(enclosing),
         }))
@@ -69,7 +70,7 @@ impl Environment {
             return Ok(());
         }
 
-        anyhow::bail!("Undefined variable {}", name);
+        anyhow::bail!("Undefined variable {name}");
     }
 
     pub fn get_at(env: &Env, distance: usize, name: &str) -> Result<LoxValue> {
@@ -80,12 +81,12 @@ impl Environment {
             .values
             .get(name)
             .cloned()
-            .ok_or_else(|| anyhow::anyhow!("Undefined variable {}", name))
+            .ok_or_else(|| anyhow::anyhow!("Undefined variable {name}"))
     }
 
     pub fn assign(&mut self, name: &str, value: LoxValue) -> Result<()> {
         if self.values.contains_key(name) {
-            self.values.insert(name.to_string(), value.clone());
+            self.values.insert(name.to_string(), value);
             return Ok(());
         }
         if let Some(enclosing) = &self.enclosing {
@@ -93,7 +94,7 @@ impl Environment {
             return Ok(());
         }
 
-        anyhow::bail!("Undefined variable {}", name);
+        anyhow::bail!("Undefined variable {name}");
     }
 
     pub fn get(&self, name: &str) -> Result<LoxValue> {
@@ -106,6 +107,6 @@ impl Environment {
             return enclosing.borrow().get(name);
         }
 
-        anyhow::bail!("Undefined variable {}", name);
+        anyhow::bail!("Undefined variable {name}");
     }
 }

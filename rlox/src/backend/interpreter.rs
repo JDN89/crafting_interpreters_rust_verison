@@ -27,13 +27,14 @@ impl Default for Interpreter {
 }
 
 impl Interpreter {
+    #[must_use]
     pub fn new() -> Self {
         let globals = Environment::new();
         globals
             .borrow_mut()
             .define("clock".to_string(), LoxValue::Callable(Rc::new(Clock)));
 
-        Interpreter {
+        Self {
             // NOTE: globals is env that is accessbile for everyone
             globals: globals.clone(),
             environment: globals,
@@ -50,7 +51,7 @@ impl Interpreter {
             Stmt::PrintStmt { expr } => {
                 let result = self.evaluate_expression(expr)?;
                 // discard result
-                println!("{}", result);
+                println!("{result}");
                 return Ok(ExecSignal::Normal);
             }
             Stmt::Var { name, initializer } => {
@@ -58,9 +59,7 @@ impl Interpreter {
                     Some(expr) => self.evaluate_expression(expr)?,
                     None => LoxValue::Nil,
                 };
-                self.environment
-                    .borrow_mut()
-                    .define(name.to_string(), value);
+                self.environment.borrow_mut().define(name.clone(), value);
                 return Ok(ExecSignal::Normal);
             }
             Stmt::Block { statements } => {
@@ -106,7 +105,7 @@ impl Interpreter {
                 };
                 return Ok(ExecSignal::Return(value));
             }
-        };
+        }
         Ok(ExecSignal::Normal)
     }
 
@@ -114,7 +113,7 @@ impl Interpreter {
         for stmt in statements {
             match self.execute_statement(stmt)? {
                 ExecSignal::Normal => {}
-                signal => return Ok(signal),
+                signal @ ExecSignal::Return(_) => return Ok(signal),
             }
         }
 
@@ -130,7 +129,7 @@ impl Interpreter {
 
     fn evaluate_expression(&mut self, expr: &Expr) -> Result<LoxValue> {
         match expr {
-            Expr::Binary { left, op, right } => self.evaluate_binary_expression(left, op, right),
+            Expr::Binary { left, op, right } => self.evaluate_binary_expression(left, *op, right),
             Expr::Assign {
                 name,
                 value,
@@ -158,9 +157,9 @@ impl Interpreter {
                 let right = self.evaluate_expression(right)?;
                 match op {
                     Operator::Plus => Ok(right),
-                    Operator::Minus => negate_value(right),
+                    Operator::Minus => negate_value(&right),
                     Operator::Bang => Ok(LoxValue::Boolean(!is_truthy(&right))),
-                    _ => panic!("Unary should not be possible with the operator types *, / , ="),
+                    _ => bail!("Unary should not be possible with the operator types *, / , ="),
                 }
             }
             Expr::Variable { name, scope_depth } => match scope_depth.get() {
@@ -182,9 +181,8 @@ impl Interpreter {
                     args.push(self.evaluate_expression(arg)?);
                 }
 
-                let function = match callee {
-                    LoxValue::Callable(function) => function,
-                    _ => bail!("Can only call functions and classes."),
+                let LoxValue::Callable(function) = callee else {
+                    bail!("Can only call functions and classes.")
                 };
 
                 if args.len() != function.arity() {
@@ -206,7 +204,7 @@ impl Interpreter {
     fn evaluate_binary_expression(
         &mut self,
         left: &Expr,
-        op: &Operator,
+        op: Operator,
         right: &Expr,
     ) -> Result<LoxValue> {
         let left = self.evaluate_expression(left)?;
@@ -217,10 +215,10 @@ impl Interpreter {
             Operator::Star => multiplication(left, right),
             Operator::Slash => division(left, right),
             Operator::Equal => {
-                bail!("'=' should not appear as an operator in a binary expression",)
+                bail!("'=' should not appear as an operator in a binary expression")
             }
             Operator::Bang => {
-                bail!("'!' should no appear is the operator in a binary expression",)
+                bail!("'!' should no appear is the operator in a binary expression")
             }
             Operator::Greater => greater(left, right),
             Operator::GreaterEqual => greater_then_or_equal(left, right),
@@ -276,26 +274,26 @@ fn is_equal(left: LoxValue, right: LoxValue) -> bool {
 fn greater_then_or_equal(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
         (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Boolean(l >= r)),
-        _ => bail!("can't compare greater than or equal for non-numbers!",),
+        _ => bail!("can't compare greater than or equal for non-numbers!"),
     }
 }
 fn less_then_or_equal(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
         (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Boolean(l <= r)),
-        _ => bail!("can't compare lesser than or equal for non-numbers!",),
+        _ => bail!("can't compare lesser than or equal for non-numbers!"),
     }
 }
 
 fn greater(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
         (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Boolean(l > r)),
-        _ => bail!("can't compare greater than for non-numbers!",),
+        _ => bail!("can't compare greater than for non-numbers!"),
     }
 }
 fn less(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
         (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Boolean(l < r)),
-        _ => bail!("can't compare less than for non-numbers!",),
+        _ => bail!("can't compare less than for non-numbers!"),
     }
 }
 
@@ -303,7 +301,7 @@ fn addition(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     match (left, right) {
         (LoxValue::Float(l), LoxValue::Float(r)) => Ok(LoxValue::Float(l + r)),
         (LoxValue::Str(l), LoxValue::Str(r)) => Ok(LoxValue::Str(l + &r)),
-        _ => bail!("Operands must be two numbers or two strings.",),
+        _ => bail!("Operands must be two numbers or two strings."),
     }
 }
 fn subtraction(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
@@ -325,7 +323,7 @@ fn multiplication(left: LoxValue, right: LoxValue) -> Result<LoxValue> {
     }
 }
 
-fn is_truthy(value: &LoxValue) -> bool {
+const fn is_truthy(value: &LoxValue) -> bool {
     match value {
         LoxValue::Boolean(b) => *b,
         LoxValue::Nil => false,
@@ -333,7 +331,7 @@ fn is_truthy(value: &LoxValue) -> bool {
     }
 }
 
-fn negate_value(value: LoxValue) -> Result<LoxValue> {
+fn negate_value(value: &LoxValue) -> Result<LoxValue> {
     match value {
         LoxValue::Float(f) => Ok(LoxValue::Float(-f)),
         _ => bail!("Unary applied to a non-number"),

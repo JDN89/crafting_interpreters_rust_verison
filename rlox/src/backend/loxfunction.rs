@@ -23,6 +23,7 @@ pub struct LoxFunction {
     pub closure: Env,
 }
 
+#[allow(clippy::unreachable)]
 impl LoxCallable for LoxFunction {
     fn arity(&self) -> usize {
         let Stmt::Function { params, .. } = &self.declaration else {
