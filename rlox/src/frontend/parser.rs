@@ -14,8 +14,9 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(tokens: Vec<Token>) -> Self {
-        Parser {
+    #[must_use]
+    pub const fn new(tokens: Vec<Token>) -> Self {
+        Self {
             tokens,
             current: 0,
             errors: Vec::new(),
@@ -47,6 +48,7 @@ impl Parser {
     }
 
     /// advance and return consumed Token
+    #[allow(clippy::arithmetic_side_effects)]
     fn advance(&mut self) {
         if !self.is_at_end() {
             self.current += 1;
@@ -54,6 +56,7 @@ impl Parser {
         self.previous();
     }
 
+    #[allow(clippy::expect_used)]
     fn peek(&self) -> &Token {
         self.tokens
             .get(self.current)
@@ -65,6 +68,7 @@ impl Parser {
     }
 
     /// return previous Token
+    #[allow(clippy::expect_used, clippy::arithmetic_side_effects)]
     fn previous(&self) -> &Token {
         self.tokens
             .get(self.current - 1)
@@ -153,6 +157,7 @@ impl Parser {
         }
     }
 
+    #[allow(clippy::expect_used, clippy::indexing_slicing)]
     fn primary(&mut self) -> Result<Expr, anyhow::Error> {
         if self.match_ttype(&[TokenType::False]) {
             return Ok(Expr::Literal {
@@ -178,7 +183,7 @@ impl Parser {
         if self.match_ttype(&[TokenType::Identifier]) {
             return Ok(Expr::Variable {
                 name: self.previous().lexeme.clone(),
-                scope_depth: Cell::new(None)
+                scope_depth: Cell::new(None),
             });
         }
 
@@ -211,7 +216,7 @@ impl Parser {
             self.advance();
             Ok(())
         } else {
-            bail!("{}.", arg)
+            bail!("{arg}.")
         }
     }
 
@@ -311,7 +316,7 @@ impl Parser {
         Ok(Stmt::Var { name, initializer })
     }
 
-    /// left side is first parsed as an expression -> should be an Expr::variable (Identifier,
+    /// left side is first parsed as an expression -> should be an `Expr::variable` (Identifier,
     /// where we store the value)
     /// if next token is '=' start parsing assignement expression
     /// parse right hand side wich should also be an expression
@@ -321,14 +326,14 @@ impl Parser {
         if self.match_ttype(&[TokenType::Equal]) {
             let equals = self.previous().clone(); // cloning token is cheap
             let value = self.assignment()?;
-            if let Expr::Variable { name, ..} = &expr {
+            if let Expr::Variable { name, .. } = &expr {
                 return Ok(Expr::Assign {
                     name: name.clone(),
                     value: Box::new(value),
-                    scope_depth: Cell::new(None)
+                    scope_depth: Cell::new(None),
                 });
             }
-            bail!("Token: {} is an invalid assingment target.", &equals);
+            bail!("Token: {equals} is an invalid assingment target.");
         }
         Ok(expr)
     }
@@ -338,7 +343,7 @@ impl Parser {
 
         while !self.check(TokenType::RightBrace) && !self.is_at_end() {
             if let Some(statement) = self.parse_declaration() {
-                statements.push(statement)
+                statements.push(statement);
             }
         }
 
@@ -426,23 +431,23 @@ impl Parser {
         };
 
         // condition
-        let condition = if !self.check(TokenType::Semicolon) {
+        let condition = if self.check(TokenType::Semicolon) {
+            self.consume(TokenType::Semicolon, "Expect ';' after loop condition")?;
+            None
+        } else {
             let expr = Some(self.expression()?);
             self.consume(TokenType::Semicolon, "Expect ';' after loop condition")?;
             expr
-        } else {
-            self.consume(TokenType::Semicolon, "Expect ';' after loop condition")?;
-            None
         };
 
         // increment
-        let increment = if !self.check(TokenType::RightParen) {
+        let increment = if self.check(TokenType::RightParen) {
+            self.consume(TokenType::RightParen, "Expect ')' after for clause")?;
+            None
+        } else {
             let expr = Some(self.expression()?);
             self.consume(TokenType::RightParen, "Expect ')' after for clause")?;
             expr
-        } else {
-            self.consume(TokenType::RightParen, "Expect ')' after for clause")?;
-            None
         };
 
         // loop body
@@ -545,10 +550,10 @@ impl Parser {
 
     fn parse_return_statement(&mut self) -> Result<Stmt> {
         let keyword = self.previous().clone();
-        let value = if !self.check(TokenType::Semicolon) {
-            Some(self.expression()?)
-        } else {
+        let value = if self.check(TokenType::Semicolon) {
             None
+        } else {
+            Some(self.expression()?)
         };
 
         self.consume(TokenType::Semicolon, "Expect ';' after return value.")?;

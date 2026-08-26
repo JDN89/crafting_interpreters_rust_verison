@@ -8,7 +8,7 @@ use core::fmt;
 // source: Andrew Kelley: A Practical Guide to Applying Data Oriented Design (DoD)
 // https://www.youtube.com/watch?v=IroPQ150F6c
 // Bekijk na implementeren van de interpreter en zie of ik het sneller kan maken!
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
     pub ttype: TokenType,
     pub lexeme: String,
@@ -17,8 +17,9 @@ pub struct Token {
 
 // TODO remove lexeme (strings are or can be expensive to clone ""). This is getting rediculous!
 impl Token {
-    pub fn new(ttype: TokenType, lexeme: String, line: u32) -> Token {
-        Token {
+    #[must_use]
+    pub const fn new(ttype: TokenType, lexeme: String, line: u32) -> Self {
+        Self {
             ttype,
             lexeme,
             line,
@@ -37,7 +38,7 @@ impl fmt::Display for Token {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,

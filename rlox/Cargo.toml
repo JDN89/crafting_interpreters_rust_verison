@@ -20,6 +20,8 @@ debug = true
 pedantic = { level = "deny", priority = -1 }
 # DEVELOPING LINTS
 nursery = { level = "deny", priority = -1 }
+# Allow missing errors doc -- hobby project
+missing_errors_doc = { level = "allow", priority = 1 }
 # DENY PANICS
 unwrap_used = "deny"
 expect_used = "deny"

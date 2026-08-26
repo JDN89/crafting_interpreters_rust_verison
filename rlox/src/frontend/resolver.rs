@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 
-use crate::frontend::{
-    ast::{Expr, Stmt},
-};
-use anyhow::{bail, Result};
+use crate::frontend::ast::{Expr, Stmt};
+use anyhow::{Result, bail};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum FunctionType {
@@ -31,21 +29,26 @@ impl Resolver {
                 condition,
                 then_branch,
                 else_branch,
-            } => {self.resolve_expression(condition)?;
+            } => {
+                self.resolve_expression(condition)?;
                 self.resolve_statement(then_branch)?;
                 if let Some(else_stmt) = else_branch {
                     self.resolve_statement(else_stmt)?;
                 }
-            },
-            Stmt::ExpressionStmt { expr } => self.resolve_expression(expr)?,
-            Stmt::PrintStmt { expr } => self.resolve_expression(expr)?,
-            Stmt::Return { keyword: _keyword , value } => {
+            }
+            Stmt::ExpressionStmt { expr } | Stmt::PrintStmt { expr } => {
+                self.resolve_expression(expr)?;
+            }
+            Stmt::Return {
+                keyword: _keyword,
+                value,
+            } => {
                 if self.current_function == FunctionType::None {
                     bail!("Can't return from top-level code.");
                 }
 
                 if let Some(expr) = value {
-                    self.resolve_expression(expr)?
+                    self.resolve_expression(expr)?;
                 }
             }
             Stmt::Var { name, initializer } => {
@@ -70,7 +73,7 @@ impl Resolver {
             Stmt::Function { name, params, body } => {
                 self.declare(&name.lexeme)?;
                 self.define(&name.lexeme);
-                self.resolve_function(params,body)?
+                self.resolve_function(params, body)?;
             }
         }
 
@@ -79,42 +82,51 @@ impl Resolver {
 
     fn resolve_expression(&mut self, expr: &Expr) -> Result<()> {
         match expr {
-            Expr::Logical { left, op: _op, right } => {
+            Expr::Logical {
+                left,
+                op: _op,
+                right,
+            } => {
                 self.resolve_expression(left)?;
                 self.resolve_expression(right)?;
-
             }
-            Expr::Binary { left, op: _op, right } => {
+            Expr::Binary {
+                left,
+                op: _op,
+                right,
+            } => {
                 self.resolve_expression(left)?;
                 self.resolve_expression(right)?;
-
             }
             Expr::Call {
                 callee,
                 paren: _paren,
                 arguments,
             } => {
-
                 self.resolve_expression(callee)?;
                 for arg in arguments {
                     self.resolve_expression(arg)?;
                 }
-            },
-            Expr::Assign { name, value ,scope_depth} => {
+            }
+            Expr::Assign {
+                name,
+                value,
+                scope_depth,
+            } => {
                 self.resolve_expression(value)?;
-                    self.resolve_local(name, scope_depth);
+                self.resolve_local(name, scope_depth);
             }
             Expr::Literal { value: _ } => (),
             Expr::Unary { op: _op, right } => {
                 self.resolve_expression(right)?;
-            },
-            Expr::Variable { name,scope_depth } => {
-                if let Some(scope) = self.scopes.last() {
-                    if scope.get(name) == Some(&false) {
-                        bail!("Can't read local variable in its own initializer.");
-                    }
+            }
+            Expr::Variable { name, scope_depth } => {
+                if let Some(scope) = self.scopes.last()
+                    && scope.get(name) == Some(&false)
+                {
+                    bail!("Can't read local variable in its own initializer.");
                 }
-                self.resolve_local(name,scope_depth)
+                self.resolve_local(name, scope_depth);
             }
             Expr::Grouping { value } => self.resolve_expression(value)?,
         }
@@ -130,22 +142,23 @@ impl Resolver {
         self.scopes.push(HashMap::new());
     }
 
-    fn declare(&mut self, name: &String) -> Result<()> {
-            if let Some(scope) = self.scopes.last_mut() {
-                if scope.contains_key(name) {
-                    bail!("Already a variable with this name in this scope.")
-                }
-                scope.insert(name.clone(), false);
+    fn declare(&mut self, name: &str) -> Result<()> {
+        if let Some(scope) = self.scopes.last_mut() {
+            if scope.contains_key(name) {
+                bail!("Already a variable with this name in this scope.");
             }
 
-            Ok(())
+            scope.insert(name.to_owned(), false);
+        }
+
+        Ok(())
     }
 
-    fn define(&mut self,name: &String) {
-            if let Some(scope) = self.scopes.last_mut() {
-                if let Some(value) = scope.get_mut(name) {
-                    *value = true
-                }
+    fn define(&mut self, name: &String) {
+        if let Some(scope) = self.scopes.last_mut()
+            && let Some(value) = scope.get_mut(name)
+        {
+            *value = true;
         }
     }
 
@@ -158,8 +171,9 @@ impl Resolver {
     }
 
     // NOTE: in they book the keep this in a seperate map in the interpreter. Reason, otherwise rewrite was needed -- extra pages and ink. Limitation does not exist here, so I store in AST node itself.
+    #[allow(clippy::arithmetic_side_effects)]
     fn resolve_local(&self, name: &str, scope_depth: &std::cell::Cell<Option<usize>>) {
-        for (index,scope) in self.scopes.iter().enumerate().rev() {
+        for (index, scope) in self.scopes.iter().enumerate().rev() {
             if scope.contains_key(name) {
                 scope_depth.set(Some(self.scopes.len() - 1 - index));
                 return;
@@ -185,7 +199,6 @@ impl Resolver {
         self.current_function = enclosing_function;
         result
     }
-
 }
 
 #[cfg(test)]

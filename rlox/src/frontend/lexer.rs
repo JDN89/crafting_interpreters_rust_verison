@@ -49,7 +49,12 @@ impl<'a> Lexer<'a> {
     }
 
     // TODO iterator might be slow. O(n) vs O(1). We beginnen alitjd vanaf start. kunnen we niet gewoon in de juiste positie indexen?
-    #[allow(clippy::expect_used)]
+    //
+    #[allow(
+        clippy::expect_used,
+        clippy::arithmetic_side_effects,
+        clippy::string_slice
+    )]
     fn advance(&mut self) -> char {
         let c = self
             .source
@@ -60,6 +65,7 @@ impl<'a> Lexer<'a> {
         c
     }
 
+    #[allow(clippy::arithmetic_side_effects, clippy::string_slice)]
     fn add_token(&mut self, ttype: TokenType) {
         // NOTE: range exclusive omdat current al advanced is naar de volgende positie, door
         // self.advance()
@@ -68,24 +74,24 @@ impl<'a> Lexer<'a> {
         self.tokens.push(token);
     }
 
+    #[allow(clippy::expect_used, clippy::arithmetic_side_effects)]
     fn match_char(&mut self, expected: char) -> bool {
         if self.is_at_end() {
             return false;
-        }
-        if self
+        } else if self
             .source
             .chars()
             .nth(self.current)
             .expect("Error at match_token whilst indexing into self.source")
-            != expected
+            == expected
         {
-            return false;
+            self.current += 1;
+            return true;
         }
-        // NOTE We only conly consume the current character when it matches with the expected token
-        self.current += 1;
-        true
+        false
     }
 
+    #[allow(clippy::expect_used, clippy::arithmetic_side_effects)]
     fn peek(&self) -> char {
         if self.is_at_end() {
             return '\0';
@@ -96,6 +102,7 @@ impl<'a> Lexer<'a> {
             .expect("Error in lexer.peek()")
     }
 
+    #[allow(clippy::expect_used, clippy::arithmetic_side_effects)]
     fn peek_next(&self) -> char {
         if self.current + 1 >= self.source.len() {
             return '\0';
@@ -106,6 +113,11 @@ impl<'a> Lexer<'a> {
             .expect("Error in Lexer::peek_next()")
     }
 
+    #[allow(
+        clippy::string_slice,
+        clippy::expect_used,
+        clippy::arithmetic_side_effects
+    )]
     fn string(&mut self) -> Result<()> {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
@@ -133,7 +145,8 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
-    pub fn is_digit(&self, c: char) -> bool {
+    #[must_use]
+    pub const fn is_digit(&self, c: char) -> bool {
         c.is_ascii_digit()
     }
 
@@ -151,14 +164,15 @@ impl<'a> Lexer<'a> {
         self.add_token(TokenType::Number);
     }
 
-    fn is_alpha(&self, c: char) -> bool {
+    const fn is_alpha(c: char) -> bool {
         c.is_ascii_lowercase() || c.is_ascii_uppercase() || c == '_'
     }
 
-    fn is_alpha_numberic(&self, c: char) -> bool {
-        self.is_digit(c) || self.is_alpha(c)
+    const fn is_alpha_numberic(&self, c: char) -> bool {
+        self.is_digit(c) || Self::is_alpha(c)
     }
 
+    #[allow(clippy::string_slice)]
     fn identifier(&mut self) {
         while self.is_alpha_numberic(self.peek()) {
             self.advance();
@@ -171,6 +185,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    #[allow(clippy::string_slice, clippy::arithmetic_side_effects)]
     fn scan_token(&mut self) -> Result<()> {
         // NOTE This call to advance also consumes the default error line
         let c = self.advance();
@@ -228,7 +243,7 @@ impl<'a> Lexer<'a> {
                 // NOTE /* is block comment */
                 else if self.match_char('*') {
                     // NOTE consume al chars until we encounter the closing '*/'
-                    while !(self.peek() == '*' && self.peek_next() == '/') && !self.is_at_end() {
+                    while !(self.is_at_end() || self.peek() == '*' && self.peek_next() == '/') {
                         if self.peek() == '\n' {
                             self.line += 1;
                         }
@@ -253,7 +268,7 @@ impl<'a> Lexer<'a> {
             _ => {
                 if self.is_digit(c) {
                     self.number();
-                } else if self.is_alpha(c) {
+                } else if Self::is_alpha(c) {
                     self.identifier();
                 } else {
                     bail!("[line {}] Error : Unexpected character", self.line);
@@ -270,7 +285,7 @@ impl<'a> Lexer<'a> {
         }
 
         self.tokens
-            .push(Token::new(TokenType::Eof, "".to_string(), self.line));
+            .push(Token::new(TokenType::Eof, String::new(), self.line));
 
         Ok(self.tokens)
     }

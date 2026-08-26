@@ -44,7 +44,7 @@ fn run_prompt() -> Result<()> {
         let input = input.trim_end();
         if let Err(e) = run(input, &mut interpreter) {
             // https://doc.rust-lang.org/std/fmt/struct.Formatter.html#method.alternate
-            eprintln!("{:#}", e);
+            eprintln!("{e:#}");
         }
     }
 
@@ -59,11 +59,13 @@ fn main() -> Result<()> {
     */
     if args.len() > 2 {
         bail!("Usage: rlox [script]");
-    } else if args.len() == 2 {
-        println!("run file {:?}", args[1]);
-        run_file(&args[1])?
-    } else {
-        run_prompt()?
+    }
+
+    match args.get(1) {
+        Some(script) => {
+            run_file(script)?;
+        }
+        None => run_prompt()?,
     }
     Ok(())
 }
