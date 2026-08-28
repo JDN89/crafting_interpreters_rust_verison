@@ -116,10 +116,13 @@ impl Resolver {
                 self.resolve_expression(value)?;
                 self.resolve_local(name, scope_depth);
             }
+            // TODO : I think we will have to add the slot and VAlue to Expr::Literal and fill it in here during the resolving of Expr::Literal
+            // probably we have to do the Same for Expr::Assign and Expr::Variable And LoxFunction? FunctionCall
             Expr::Literal { value: _ } => (),
             Expr::Unary { op: _op, right } => {
                 self.resolve_expression(right)?;
             }
+            //TODO this looks cursed. I forgot what I am doing hre
             Expr::Variable { name, scope_depth } => {
                 if let Some(scope) = self.scopes.last()
                     && scope.get(name) == Some(&false)
@@ -170,6 +173,7 @@ impl Resolver {
         Ok(())
     }
 
+    // TODO SEE IT's ehre that we resolve the local whcih means set the depth of the var name!!!
     // NOTE: in they book the keep this in a seperate map in the interpreter. Reason, otherwise rewrite was needed -- extra pages and ink. Limitation does not exist here, so I store in AST node itself.
     #[allow(clippy::arithmetic_side_effects)]
     fn resolve_local(&self, name: &str, scope_depth: &std::cell::Cell<Option<usize>>) {

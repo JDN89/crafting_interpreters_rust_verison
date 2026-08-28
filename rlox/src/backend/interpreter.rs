@@ -59,6 +59,9 @@ impl Interpreter {
                     Some(expr) => self.evaluate_expression(expr)?,
                     None => LoxValue::Nil,
                 };
+                //TODO var a = 1-> ath this moment define in environment.
+                // becasue these are the values we want to retrieve that are bound to a scope -> var a = global { var a = local; print a;} print a;
+                // SAME for Function names and arguments
                 self.environment.borrow_mut().define(name.clone(), value);
                 return Ok(ExecSignal::Normal);
             }
@@ -89,11 +92,15 @@ impl Interpreter {
                     }
                 }
             }
+            //TODO var a = 1-> ath this moment define in environment.
+            // becasue these are the values we want to retrieve that are bound to a scope -> var a = global { var a = local; print a;} print a;
+            // SAME for Function names and arguments
             Stmt::Function { name, .. } => {
                 let function = LoxFunction {
                     declaration: statement.clone(),
                     closure: self.environment.clone(),
                 };
+                //TODO funciton name we store in environment
                 self.environment
                     .borrow_mut()
                     .define(name.lexeme.clone(), LoxValue::Callable(Rc::new(function)));
@@ -137,6 +144,12 @@ impl Interpreter {
             } => {
                 let evaluated_value = self.evaluate_expression(value)?;
 
+                //TODO During the resolving face we figure out at whcih depth we have to store a Assingment Expr.
+                // So during interpretation we use the scope depth to determine where to store the value.
+                // so for Literals we define at whcih depth the value will be stored and in which slot
+                // I am wrong, the scope hashmap won't match the interpreter's environment
+                // I am still missing somehting. go further tomorrow.
+                // Is it as simple as adding the slot and Deth to the LoxValue itslef?
                 match scope_depth.get() {
                     Some(depth) => Environment::assign_at(
                         &self.environment,
@@ -163,6 +176,10 @@ impl Interpreter {
                 }
             }
             Expr::Variable { name, scope_depth } => match scope_depth.get() {
+                // TODO If there is a depth, get the value from the local scope otherwise get from globals
+                // THIS is the CRUX look furhter tomorrow
+                // what I am missing is that at this point the Expr::Variable is allready stored in the environement??
+                // I think this is wrong we only have a dept for Expr::Assignment, because it's fot the litereal
                 Some(depth) => Environment::get_at(&self.environment, depth, name),
                 None => self.globals.borrow().get(name),
             },

@@ -91,16 +91,19 @@ pub enum Expr {
         op: Operator,
         right: Box<Self>,
     },
+    // TODO Add dept and slot in env during resolving
     Call {
         callee: Box<Self>,
         paren: TokenType,
         arguments: Vec<Self>,
     },
+    // TODO Add dept and slot in env during resolving
     Assign {
         name: String,
         value: Box<Self>,
         scope_depth: Cell<Option<usize>>,
     },
+    // TODOAdd dept and slot in env during resolving
     Literal {
         value: Literal,
     },
@@ -108,6 +111,7 @@ pub enum Expr {
         op: Operator,
         right: Box<Self>,
     },
+    // TODO Add dept and slot in env during resolving
     Variable {
         name: String,
         scope_depth: Cell<Option<usize>>,
