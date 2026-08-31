@@ -13,10 +13,6 @@ TODO this reddit thread seems informative with extra info of what I did wrong or
 
 
 ## TODO:
-- [x] finish clippy
-- [ ] make binary of .clone improvements
-- [ ] measure, take clippy binary
-- [ ] faster hasmap
 - [ ] store depth and slot in ast node u32, and u32 -> probably have to do the same for vec of ast nodes..., or somehting similar
 - [ ] there is an iterator where we can probably index into the src string. We have self.current. pass src as vec utf8? -> that iterator that is slow in (the lexer?) can be tested with criterion I think?
 - [ ] make base from clippy refactor
@@ -64,69 +60,6 @@ pub struct Environment {
     enclosing: Option<Env>,
 }
 ```
-
-```text
-14.33%  hash_one<RandomState, &str>
- ├─ 8.49%  finish
- ├─ 4.54%  hash<str, DefaultHasher>
- └─ 1.00%  build_hasher
-```
-
-```rust
-    pub fn get_at(env: &Env, distance: usize, name: &str) -> Result<LoxValue> {
-        let ancestor = Self::ancestor(env, distance)?;
-        let ancestor = ancestor.borrow();
-
-        ancestor
-            .values
-            .get(name)
-            .cloned()
-            .ok_or_else(|| anyhow::anyhow!("Undefined variable {name}"))
-    }
-```
-
-```text
-13.26%  get_at
- └─ 10.74%  get
-     └─ 0.96%  ancestor
-```
-
-```rust
-    pub fn define(&mut self, name: String, value: LoxValue) {
-        self.values.insert(name, value);
-    }
-```
-
-```text
-12.57%  define
- └─ 11.78%  drop_glue<Option<LoxValue>>
-     └─ 11.55%  insert
-         ├─ 7.15%  find_or_find_insert_index
-         ├─ 2.54%  insert_at_index
-         └─ 1.11%  hash_one
-```
-
-```text
-11.94%  insert
- ├─ 7.15%  find_or_find_insert_index
- ├─ 2.54%  insert_at_index
- └─ 1.11%  hash_one
-```
-
-```text
-11.78%  drop_glue<Option<LoxValue>>
- └─ 11.55%  insert
-     ├─ 7.15%  find_or_find_insert_index
-     ├─ 2.54%  insert_at_index
-     └─ 1.11%  hash_one
-```
-
-```text
-10.74%  get
- └─ 10.42%  get / find
-     └─ find_inner
-```
-
 
 The profile makes the bottleneck fairly apparent: **a significant amount of time is being spent hashing strings and performing hash map lookups and insertions.**
 
@@ -226,7 +159,7 @@ Benchmark 1: target/release/rlox fib.lox
 ```
 
 ### Change dyn function calls with enums
-I saw a video where casey said you have to layout your code in such a way that the compiler can see the path and optimize as much as possible
+I saw a video where [Casey muratory says why clean code is slow](https://www.youtube.com/watch?v=8xBJPa_480Q&t=1632s) 'The cost of a compiler not being able to do any optimizations'. what would happen with
 
 
 
@@ -241,7 +174,21 @@ pub trait LoxCallable {
     fn arity(&self) -> usize;
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<LoxValue>) -> Result<LoxValue>;
 }
+
+```rust
+#[derive(Clone)]
+pub enum LoxValue {
+    Str(String),
+    Boolean(bool),
+    Float(f64),
+    Nil,
+    // TODO: replace dyn trait later with enum variant. more explicit
+    Callable(Rc<dyn LoxCallable>),
+}
 ```
+
+
+
 ### changing env hashmap to Vec
 
 We store the reference in the hashmap, which is alway a name, plus the correspondin LoxValue, which can be a literal value, class, function,...
