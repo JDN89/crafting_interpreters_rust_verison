@@ -1,5 +1,5 @@
+use rustc_hash::FxHashMap;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use anyhow::Result;
@@ -10,7 +10,7 @@ pub type Env = Rc<RefCell<Environment>>;
 
 #[derive(Debug, Clone)]
 pub struct Environment {
-    values: HashMap<String, LoxValue>,
+    values: FxHashMap<String, LoxValue>,
     enclosing: Option<Env>,
 }
 
@@ -24,7 +24,7 @@ impl Environment {
     #[must_use]
     pub fn new() -> Env {
         Rc::new(RefCell::new(Self {
-            values: HashMap::new(),
+            values: FxHashMap::default(),
             enclosing: None,
         }))
     }
@@ -37,7 +37,7 @@ impl Environment {
     /// be satisfied locally will fall back to the enclosing environment.
     pub fn new_enclosed(enclosing: Env) -> Env {
         Rc::new(RefCell::new(Self {
-            values: HashMap::new(),
+            values: FxHashMap::default(),
             enclosing: Some(enclosing),
         }))
     }
