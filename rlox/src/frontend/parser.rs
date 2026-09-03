@@ -183,7 +183,7 @@ impl Parser {
         if self.match_ttype(&[TokenType::Identifier]) {
             return Ok(Expr::Variable {
                 name: self.previous().lexeme.clone(),
-                scope_depth: Cell::new(None),
+                env_location: None,
             });
         }
 
@@ -330,7 +330,7 @@ impl Parser {
                 return Ok(Expr::Assign {
                     name: name.clone(),
                     value: Box::new(value),
-                    scope_depth: Cell::new(None),
+                    env_location: None,
                 });
             }
             bail!("Token: {equals} is an invalid assingment target.");
@@ -581,7 +581,7 @@ mod tests {
                 expr: Expr::Call {
                     callee: Box::new(Expr::Variable {
                         name: "foo".to_string(),
-                        scope_depth: Cell::new(None)
+                        env_location: None
                     }),
                     paren: TokenType::RightParen,
                     arguments: vec![
@@ -617,7 +617,7 @@ mod tests {
                 body: vec![Stmt::PrintStmt {
                     expr: Expr::Variable {
                         name: "a".to_string(),
-                        scope_depth: Cell::new(None)
+                        env_location: None
                     },
                 }],
             }
