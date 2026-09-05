@@ -191,6 +191,22 @@ pub enum LoxValue {
 
 ### changing env hashmap to Vec
 
+RECENT update:
+in resolver for globals we don't define and end a scope, this means we don't have a depth in that case. For globals I will keep using the hashmap. and for local scopes I wil change to a Vec.
+This will keep the design cleaner.
+Then in ENV I do have to create new define, get, get at methods only for local envs.
+
+the slot we determine when we **declare** a var during the resolving fase, from the length of the hashmap.
+
+This means that globals will never have a depth and a slot. When we encounter a None env_location in the interpreter, we know it's a global. Then look in the hashmap
+
+When env_location is Nonen in interpreter
+
+
+-----------
+
+
+
 We store the reference in the hashmap, which is alway a name, plus the correspondin LoxValue, which can be a literal value, class, function,...
 The solution is to drop the mame and each time we encounter a reference with correosonding calue, fhat we would store in the Env hash as key vake, then we just now add the depth and slot to the expression node. So when we encounter it during the interoreter face we point it to the right env location via indexing.
 
