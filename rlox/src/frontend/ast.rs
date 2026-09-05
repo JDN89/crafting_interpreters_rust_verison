@@ -179,6 +179,7 @@ pub enum Stmt {
     Var {
         name: String,
         initializer: Option<Expr>,
+        env_location: Cell<Option<(Depth, Slot)>>,
     },
     Block {
         statements: Vec<Self>,
@@ -192,5 +193,6 @@ pub enum Stmt {
         name: Token,
         params: Vec<Token>,
         body: Vec<Self>,
+        env_location: Cell<Option<(Depth, Slot)>>,
     },
 }

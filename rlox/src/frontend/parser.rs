@@ -313,7 +313,11 @@ impl Parser {
             "Expect ';' after variable declaration.",
         )?;
 
-        Ok(Stmt::Var { name, initializer })
+        Ok(Stmt::Var {
+            name,
+            initializer,
+            env_location: Cell::new(None),
+        })
     }
 
     /// left side is first parsed as an expression -> should be an `Expr::variable` (Identifier,
@@ -545,6 +549,7 @@ impl Parser {
             name,
             params: parameters,
             body: statements,
+            env_location: Cell::new(None),
         })
     }
 
@@ -620,6 +625,7 @@ mod tests {
                         env_location: Cell::new(None),
                     },
                 }],
+                env_location: Cell::new(None),
             }
         );
     }

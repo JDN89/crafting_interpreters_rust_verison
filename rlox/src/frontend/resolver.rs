@@ -53,11 +53,23 @@ impl Resolver {
                     self.resolve_expression(expr)?;
                 }
             }
-            Stmt::Var { name, initializer } => {
+            Stmt::Var {
+                name,
+                initializer,
+                env_location,
+            } => {
                 self.declare(name)?;
                 if let Some(initializer_expression) = initializer {
                     self.resolve_expression(initializer_expression)?;
                 }
+
+                // If this declaration is local, record its slot.
+                if let Some(scope) = self.scopes.last() {
+                    if let Some((slot, _)) = scope.get(name) {
+                        env_location.set(Some((0, *slot)));
+                    }
+                }
+
                 self.define(name);
             }
             Stmt::Block { statements } => {
@@ -72,8 +84,18 @@ impl Resolver {
                 self.resolve_statement(body)?;
             }
             // TODO: probably name can be String or stirng interned instead of passing the whole token?
-            Stmt::Function { name, params, body } => {
+            Stmt::Function {
+                name,
+                params,
+                body,
+                env_location,
+            } => {
                 self.declare(&name.lexeme)?;
+                if let Some(scope) = self.scopes.last() {
+                    if let Some((slot, _is_defined)) = scope.get(&name.lexeme) {
+                        env_location.set(Some((0, *slot)));
+                    }
+                }
                 self.define(&name.lexeme);
                 self.resolve_function(params, body)?;
             }
@@ -183,8 +205,10 @@ impl Resolver {
         for (index, scope) in self.scopes.iter().enumerate().rev() {
             if scope.contains_key(name) {
                 let depth = self.scopes.len() - 1 - index;
+                // Retrieve the slot form the scope that was defined during declaration
+                let slot = scope.get(name).unwrap().0;
 
-                env_location.set(env_location.get().map(|(_, slot)| (depth, slot)));
+                env_location.set(Some((depth, slot)));
                 return;
             }
         }
@@ -226,6 +250,7 @@ mod tests {
                     initializer: Some(Expr::Literal {
                         value: Literal::Float(1.0),
                     }),
+                    env_location: Cell::new(None),
                 },
                 Stmt::Block {
                     statements: vec![Stmt::Var {
@@ -234,6 +259,7 @@ mod tests {
                             name: "a".to_string(),
                             env_location: Cell::new(None),
                         }),
+                        env_location: Cell::new(None),
                     }],
                 },
             ],

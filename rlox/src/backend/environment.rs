@@ -45,7 +45,7 @@ impl GlobalEnvironment {
 
 #[derive(Debug, Clone)]
 pub struct Environment {
-    values: FxHashMap<String, LoxValue>,
+    values: Vec<LoxValue>,
     enclosing: Option<Env>,
 }
 
@@ -53,7 +53,7 @@ impl Environment {
     #[must_use]
     pub fn new() -> Env {
         Rc::new(RefCell::new(Self {
-            values: FxHashMap::default(),
+            values: Vec::new(),
             enclosing: None,
         }))
     }
@@ -66,13 +66,13 @@ impl Environment {
     /// be satisfied locally will fall back to the enclosing environment.
     pub fn new_enclosed(enclosing: Env) -> Env {
         Rc::new(RefCell::new(Self {
-            values: FxHashMap::default(),
+            values: Vec::new(),
             enclosing: Some(enclosing),
         }))
     }
 
-    pub fn define(&mut self, name: String, value: LoxValue) {
-        self.values.insert(name, value);
+    pub fn define(&mut self, value: LoxValue) {
+        self.values.push(value);
     }
 
     fn ancestor(env: &Env, distance: usize) -> Result<Env> {
@@ -100,12 +100,13 @@ impl Environment {
         let ancestor = Self::ancestor(env, depth)?;
         let mut ancestor = ancestor.borrow_mut();
 
-        if ancestor.values.contains_key(name) {
-            ancestor.values.insert(name.to_string(), value);
-            return Ok(());
-        }
+        let target: &mut LoxValue = ancestor
+            .values
+            .get_mut(slot)
+            .ok_or_else(|| anyhow::anyhow!("Invalid local slot"))?;
+        *target = value;
 
-        anyhow::bail!("Undefined variable {name}");
+        Ok(())
     }
 
     pub fn get_at(env: &Env, depth: usize, slot: usize, name: &str) -> Result<LoxValue> {
@@ -114,34 +115,34 @@ impl Environment {
 
         ancestor
             .values
-            .get(name)
+            .get(slot)
             .cloned()
             .ok_or_else(|| anyhow::anyhow!("Undefined variable {name}"))
     }
 
-    pub fn assign(&mut self, name: &str, value: LoxValue) -> Result<()> {
-        if self.values.contains_key(name) {
-            self.values.insert(name.to_string(), value);
-            return Ok(());
-        }
-        if let Some(enclosing) = &self.enclosing {
-            enclosing.borrow_mut().assign(name, value)?;
-            return Ok(());
-        }
+    // pub fn assign(&mut self, name: &str, value: LoxValue) -> Result<()> {
+    //     if self.values.contains_key(name) {
+    //         self.values.insert(name.to_string(), value);
+    //         return Ok(());
+    //     }
+    //     if let Some(enclosing) = &self.enclosing {
+    //         enclosing.borrow_mut().assign(name, value)?;
+    //         return Ok(());
+    //     }
 
-        anyhow::bail!("Undefined variable {name}");
-    }
+    //     anyhow::bail!("Undefined variable {name}");
+    // }
 
-    pub fn get(&self, name: &str) -> Result<LoxValue> {
-        // First try to access the inners scope
-        if let Some(value) = self.values.get(name) {
-            return Ok(value.clone());
-        }
-        // Match on Some if present
-        if let Some(enclosing) = &self.enclosing {
-            return enclosing.borrow().get(name);
-        }
+    // pub fn get(&self, name: &str) -> Result<LoxValue> {
+    //     // First try to access the inners scope
+    //     if let Some(value) = self.values.get(name) {
+    //         return Ok(value.clone());
+    //     }
+    //     // Match on Some if present
+    //     if let Some(enclosing) = &self.enclosing {
+    //         return enclosing.borrow().get(name);
+    //     }
 
-        anyhow::bail!("Undefined variable {name}");
-    }
+    //     anyhow::bail!("Undefined variable {name}");
+    // }
 }

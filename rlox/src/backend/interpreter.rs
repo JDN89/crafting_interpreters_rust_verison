@@ -55,7 +55,11 @@ impl Interpreter {
                 println!("{result}");
                 return Ok(ExecSignal::Normal);
             }
-            Stmt::Var { name, initializer } => {
+            Stmt::Var {
+                name,
+                initializer,
+                env_location,
+            } => {
                 let value = match initializer {
                     Some(expr) => self.evaluate_expression(expr)?,
                     None => LoxValue::Nil,
@@ -63,7 +67,10 @@ impl Interpreter {
                 //TODO var a = 1-> ath this moment define in environment.
                 // becasue these are the values we want to retrieve that are bound to a scope -> var a = global { var a = local; print a;} print a;
                 // SAME for Function names and arguments
-                self.environment.borrow_mut().define(name.clone(), value);
+                match env_location.get() {
+                    Some((_depth, _slot)) => self.environment.borrow_mut().define(value),
+                    None => self.globals.define_global_value(name.clone(), value),
+                }
                 return Ok(ExecSignal::Normal);
             }
             Stmt::Block { statements } => {
@@ -96,15 +103,28 @@ impl Interpreter {
             //TODO var a = 1-> ath this moment define in environment.
             // becasue these are the values we want to retrieve that are bound to a scope -> var a = global { var a = local; print a;} print a;
             // SAME for Function names and arguments
-            Stmt::Function { name, .. } => {
+            Stmt::Function {
+                name,
+                params,
+                body,
+                env_location,
+            } => {
                 let function = LoxFunction {
                     declaration: statement.clone(),
                     closure: self.environment.clone(),
                 };
-                //TODO funciton name we store in environment
-                self.environment
-                    .borrow_mut()
-                    .define(name.lexeme.clone(), LoxValue::Callable(Rc::new(function)));
+                // RESEARCH: for define is slot and depth needed?
+
+                match env_location.get() {
+                    Some(_) => self
+                        .environment
+                        .borrow_mut()
+                        .define(LoxValue::Callable(Rc::new(function))),
+                    None => self.globals.define_global_value(
+                        name.lexeme.clone(),
+                        LoxValue::Callable(Rc::new(function)),
+                    ),
+                }
             }
             Stmt::Return { value, .. } => {
                 let value = match value {

@@ -43,6 +43,60 @@ fn respects_block_scopes() {
 }
 
 #[test]
+fn resolves_nested_local_scopes() {
+    let source = "
+        fun show() {
+          var outer = \"outer\";
+          {
+            var middle = \"middle\";
+            {
+              print outer;
+              print middle;
+            }
+          }
+        }
+        show();
+        ";
+
+    run_script(source)
+        .success()
+        .stdout(predicate::str::contains("outer\nmiddle"));
+}
+
+#[test]
+fn calls_local_function_declaration() {
+    let source = "
+        fun outer() {
+          fun inner() {
+            print \"inner\";
+          }
+          inner();
+        }
+        outer();
+        ";
+
+    run_script(source)
+        .success()
+        .stdout(predicate::str::contains("inner"));
+}
+
+#[test]
+fn reports_undefined_variables() {
+    run_script("print missing;")
+        .failure()
+        .stderr(predicate::str::contains("Undefined variable missing"));
+}
+
+#[test]
+fn rejects_duplicate_local_declarations() {
+    run_script("{ var a = 1; var a = 2; }")
+        .failure()
+        .stderr(predicate::str::contains(
+            "Already a variable with this name in this scope.",
+        ));
+}
+
+#[test]
 fn reports_runtime_type_errors() {
     run_script("print \"a\" - \"b\";")
         .failure()
