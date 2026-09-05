@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::rc::Rc;
 
 use anyhow::{Result, bail};
@@ -6,6 +5,7 @@ use anyhow::{Result, bail};
 use crate::backend::callable::Clock;
 use crate::backend::environment::Env;
 use crate::backend::environment::Environment;
+use crate::backend::environment::GlobalEnvironment;
 use crate::backend::exec_signal::ExecSignal;
 use crate::backend::loxfunction::LoxFunction;
 use crate::frontend::ast::Stmt;
@@ -16,7 +16,9 @@ use crate::{
 };
 
 pub struct Interpreter {
-    pub globals: Env,
+    //TODO globals should be a sep type that has hashmap and enclosing ENV
+    //
+    pub globals: GlobalEnvironment,
     pub environment: Env,
 }
 
@@ -29,15 +31,14 @@ impl Default for Interpreter {
 impl Interpreter {
     #[must_use]
     pub fn new() -> Self {
-        let globals = Environment::new();
-        globals
-            .borrow_mut()
-            .define("clock".to_string(), LoxValue::Callable(Rc::new(Clock)));
+        let mut globals = GlobalEnvironment::new();
+        globals.define_global_value("clock".to_string(), LoxValue::Callable(Rc::new(Clock)));
 
         Self {
             // NOTE: globals is env that is accessbile for everyone
-            globals: globals.clone(),
-            environment: globals,
+            globals: globals,
+            //BUG: possibility of bug at this stage. We used to clone globals for our local environment
+            environment: Environment::new(),
         }
     }
 
@@ -140,7 +141,7 @@ impl Interpreter {
             Expr::Assign {
                 name,
                 value,
-                scope_depth,
+                env_location,
             } => {
                 let evaluated_value = self.evaluate_expression(value)?;
 
@@ -150,17 +151,17 @@ impl Interpreter {
                 // I am wrong, the scope hashmap won't match the interpreter's environment
                 // I am still missing somehting. go further tomorrow.
                 // Is it as simple as adding the slot and Deth to the LoxValue itslef?
-                match scope_depth.get() {
-                    Some(depth) => Environment::assign_at(
+                match env_location.get() {
+                    Some((depth, slot)) => Environment::assign_at(
                         &self.environment,
                         depth,
+                        slot,
                         name,
                         evaluated_value.clone(),
                     )?,
                     None => self
                         .globals
-                        .borrow_mut()
-                        .assign(name, evaluated_value.clone())?,
+                        .assign_global_value(name, evaluated_value.clone())?,
                 }
 
                 Ok(evaluated_value)
@@ -175,13 +176,15 @@ impl Interpreter {
                     _ => bail!("Unary should not be possible with the operator types *, / , ="),
                 }
             }
-            Expr::Variable { name, scope_depth } => match scope_depth.get() {
+
+            // TODO: during resolving when it's global we don't give a depth?
+            Expr::Variable { name, env_location } => match env_location.get() {
                 // TODO If there is a depth, get the value from the local scope otherwise get from globals
                 // THIS is the CRUX look furhter tomorrow
                 // what I am missing is that at this point the Expr::Variable is allready stored in the environement??
                 // I think this is wrong we only have a dept for Expr::Assignment, because it's fot the litereal
-                Some(depth) => Environment::get_at(&self.environment, depth, name),
-                None => self.globals.borrow().get(name),
+                Some((depth, slot)) => Environment::get_at(&self.environment, depth, slot, name),
+                None => self.globals.get_global_value(name),
             },
             Expr::Grouping { value } => self.evaluate_expression(value),
             Expr::Logical { left, op, right } => {
@@ -246,11 +249,7 @@ impl Interpreter {
         }
     }
 
-    pub fn execute_block(
-        &mut self,
-        statements: &Vec<Stmt>,
-        new: Rc<RefCell<Environment>>,
-    ) -> Result<ExecSignal> {
+    pub fn execute_block(&mut self, statements: &Vec<Stmt>, new: Env) -> Result<ExecSignal> {
         let previous_env = std::mem::replace(&mut self.environment, new);
         let result = self.execute_statements(statements);
         self.environment = previous_env;

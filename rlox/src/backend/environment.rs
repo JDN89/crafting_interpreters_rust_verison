@@ -9,16 +9,45 @@ use crate::backend::value::LoxValue;
 pub type Env = Rc<RefCell<Environment>>;
 
 #[derive(Debug, Clone)]
+pub struct GlobalEnvironment {
+    values: FxHashMap<String, LoxValue>,
+}
+
+impl GlobalEnvironment {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            values: FxHashMap::default(),
+        }
+    }
+
+    pub fn define_global_value(&mut self, name: String, value: LoxValue) {
+        self.values.insert(name, value);
+    }
+
+    pub fn assign_global_value(&mut self, name: &str, value: LoxValue) -> Result<()> {
+        if self.values.contains_key(name) {
+            self.values.insert(name.to_string(), value);
+            return Ok(());
+        }
+        anyhow::bail!("Undefined variable {name}");
+    }
+
+    pub fn get_global_value(&self, name: &str) -> Result<LoxValue> {
+        // First try to access the inners scope
+        if let Some(value) = self.values.get(name) {
+            return Ok(value.clone());
+        }
+
+        anyhow::bail!("Undefined variable {name}");
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Environment {
     values: FxHashMap<String, LoxValue>,
     enclosing: Option<Env>,
 }
-
-// impl Default for Environment {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
 
 impl Environment {
     #[must_use]
@@ -61,8 +90,14 @@ impl Environment {
         Ok(current)
     }
 
-    pub fn assign_at(env: &Env, distance: usize, name: &str, value: LoxValue) -> Result<()> {
-        let ancestor = Self::ancestor(env, distance)?;
+    pub fn assign_at(
+        env: &Env,
+        depth: usize,
+        slot: usize,
+        name: &str,
+        value: LoxValue,
+    ) -> Result<()> {
+        let ancestor = Self::ancestor(env, depth)?;
         let mut ancestor = ancestor.borrow_mut();
 
         if ancestor.values.contains_key(name) {
@@ -73,8 +108,8 @@ impl Environment {
         anyhow::bail!("Undefined variable {name}");
     }
 
-    pub fn get_at(env: &Env, distance: usize, name: &str) -> Result<LoxValue> {
-        let ancestor = Self::ancestor(env, distance)?;
+    pub fn get_at(env: &Env, depth: usize, slot: usize, name: &str) -> Result<LoxValue> {
+        let ancestor = Self::ancestor(env, depth)?;
         let ancestor = ancestor.borrow();
 
         ancestor
