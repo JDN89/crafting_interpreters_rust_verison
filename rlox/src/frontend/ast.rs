@@ -5,8 +5,8 @@ use anyhow::{Error, Ok, Result, anyhow};
 
 use crate::frontend::token::{Token, TokenType};
 
-type Depth = u32;
-type Slot = u32;
+pub type Depth = usize;
+pub type Slot = usize;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
@@ -104,7 +104,7 @@ pub enum Expr {
     Assign {
         name: String,
         value: Box<Self>,
-        env_location: Option<(Depth, Slot)>,
+        env_location: Cell<Option<(Depth, Slot)>>,
     },
     // TODOAdd dept and slot in env during resolving
     Literal {
@@ -117,7 +117,7 @@ pub enum Expr {
     // TODO Add dept and slot in env during resolving
     Variable {
         name: String,
-        env_location: Option<(Depth, Slot)>,
+        env_location: Cell<Option<(Depth, Slot)>>,
     },
     Grouping {
         value: Box<Self>,
@@ -139,7 +139,7 @@ impl fmt::Display for Expr {
             Self::Literal { value } => {
                 write!(f, "{value}")
             }
-            Self::Variable { name, env_location } => match env_location {
+            Self::Variable { name, env_location } => match env_location.get() {
                 Some(location) => write!(f, "{name}, location= {:?}", location),
                 None => write!(f, "{name}"),
             },

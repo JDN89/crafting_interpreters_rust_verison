@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::{cell::Cell, collections::HashMap};
 
-use crate::frontend::ast::{Expr, Stmt};
+use crate::frontend::ast::{Depth, Expr, Slot, Stmt};
 use anyhow::{Result, bail};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -10,7 +10,9 @@ enum FunctionType {
 }
 
 pub struct Resolver {
-    scopes: Vec<HashMap<String, bool>>,
+    //TODO: store Slot and bool in the hashmap. We store the slot index during the declaration.
+    // I was going to determine slot from hashmap len(),which is wrong because by then we might have more elements in the hashmap.
+    scopes: Vec<HashMap<String, (Slot, bool)>>,
     current_function: FunctionType,
 }
 
@@ -111,10 +113,10 @@ impl Resolver {
             Expr::Assign {
                 name,
                 value,
-                scope_depth,
+                env_location,
             } => {
                 self.resolve_expression(value)?;
-                self.resolve_local(name, scope_depth);
+                self.resolve_local(name, env_location);
             }
             // TODO : I think we will have to add the slot and VAlue to Expr::Literal and fill it in here during the resolving of Expr::Literal
             // probably we have to do the Same for Expr::Assign and Expr::Variable And LoxFunction? FunctionCall
@@ -123,13 +125,13 @@ impl Resolver {
                 self.resolve_expression(right)?;
             }
             //TODO this looks cursed. I forgot what I am doing hre
-            Expr::Variable { name, scope_depth } => {
+            Expr::Variable { name, env_location } => {
                 if let Some(scope) = self.scopes.last()
-                    && scope.get(name) == Some(&false)
+                    && scope.get(name).is_some_and(|(_, is_defined)| !*is_defined)
                 {
                     bail!("Can't read local variable in its own initializer.");
                 }
-                self.resolve_local(name, scope_depth);
+                self.resolve_local(name, env_location);
             }
             Expr::Grouping { value } => self.resolve_expression(value)?,
         }
@@ -151,7 +153,8 @@ impl Resolver {
                 bail!("Already a variable with this name in this scope.");
             }
 
-            scope.insert(name.to_owned(), false);
+            let slot = scope.len();
+            scope.insert(name.to_owned(), (slot, false));
         }
 
         Ok(())
@@ -159,7 +162,7 @@ impl Resolver {
 
     fn define(&mut self, name: &String) {
         if let Some(scope) = self.scopes.last_mut()
-            && let Some(value) = scope.get_mut(name)
+            && let Some((_slot, value)) = scope.get_mut(name)
         {
             *value = true;
         }
@@ -176,10 +179,12 @@ impl Resolver {
     // TODO SEE IT's ehre that we resolve the local whcih means set the depth of the var name!!!
     // NOTE: in they book the keep this in a seperate map in the interpreter. Reason, otherwise rewrite was needed -- extra pages and ink. Limitation does not exist here, so I store in AST node itself.
     #[allow(clippy::arithmetic_side_effects)]
-    fn resolve_local(&self, name: &str, scope_depth: &std::cell::Cell<Option<usize>>) {
+    fn resolve_local(&self, name: &str, env_location: &Cell<Option<(Depth, Slot)>>) {
         for (index, scope) in self.scopes.iter().enumerate().rev() {
             if scope.contains_key(name) {
-                scope_depth.set(Some(self.scopes.len() - 1 - index));
+                let depth = self.scopes.len() - 1 - index;
+
+                env_location.set(env_location.get().map(|(_, slot)| (depth, slot)));
                 return;
             }
         }
@@ -227,7 +232,7 @@ mod tests {
                         name: "b".to_string(),
                         initializer: Some(Expr::Variable {
                             name: "a".to_string(),
-                            scope_depth: Cell::new(None),
+                            env_location: Cell::new(None),
                         }),
                     }],
                 },
@@ -245,15 +250,15 @@ mod tests {
         let inner_var = match &inner_block[1] {
             Stmt::Block { statements } => match &statements[0] {
                 Stmt::Var {
-                    initializer: Some(Expr::Variable { scope_depth, .. }),
+                    initializer: Some(Expr::Variable { env_location, .. }),
                     ..
-                } => scope_depth,
+                } => env_location,
                 _ => unreachable!(),
             },
             _ => unreachable!(),
         };
 
-        assert_eq!(inner_var.get(), Some(1));
+        assert_eq!(inner_var.get(), Some((1, 0)));
     }
 
     #[test]
@@ -269,7 +274,7 @@ mod tests {
                     expr: Expr::Call {
                         callee: Box::new(Expr::Variable {
                             name: "show".to_string(),
-                            scope_depth: Cell::new(None),
+                            env_location: Cell::new(None),
                         }),
                         paren: TokenType::RightParen,
                         arguments: vec![],
@@ -295,13 +300,13 @@ mod tests {
                         paren: _,
                     },
             } => match callee.as_ref() {
-                Expr::Variable { scope_depth, .. } => scope_depth,
+                Expr::Variable { env_location, .. } => env_location,
                 _ => unreachable!(),
             },
             _ => unreachable!(),
         };
 
-        assert_eq!(callee_scope_depth.get(), Some(0));
+        assert_eq!(callee_scope_depth.get(), Some((0, 1)));
     }
 
     #[test]
@@ -313,7 +318,7 @@ mod tests {
                 name: "a".to_string(),
                 initializer: Some(Expr::Variable {
                     name: "a".to_string(),
-                    scope_depth: Cell::new(None),
+                    env_location: Cell::new(None),
                 }),
             }],
         }];
