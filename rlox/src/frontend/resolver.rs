@@ -288,6 +288,211 @@ mod tests {
     }
 
     #[test]
+    fn resolve_sets_same_scope_depth_and_slot() {
+        let statements = vec![Stmt::Block {
+            statements: vec![
+                Stmt::Var {
+                    name: "a".to_string(),
+                    initializer: None,
+                    env_location: Cell::new(None),
+                },
+                Stmt::Var {
+                    name: "b".to_string(),
+                    initializer: Some(Expr::Variable {
+                        name: "a".to_string(),
+                        env_location: Cell::new(None),
+                    }),
+                    env_location: Cell::new(None),
+                },
+                Stmt::ExpressionStmt {
+                    expr: Expr::Variable {
+                        name: "b".to_string(),
+                        env_location: Cell::new(None),
+                    },
+                },
+            ],
+        }];
+
+        let mut resolver = Resolver::default();
+        resolver.resolve(&statements).unwrap();
+
+        let block_statements = match &statements[0] {
+            Stmt::Block { statements } => statements,
+            _ => unreachable!(),
+        };
+        let a_reference = match &block_statements[1] {
+            Stmt::Var {
+                initializer: Some(Expr::Variable { env_location, .. }),
+                ..
+            } => env_location,
+            _ => unreachable!(),
+        };
+        let b_reference = match &block_statements[2] {
+            Stmt::ExpressionStmt {
+                expr: Expr::Variable { env_location, .. },
+            } => env_location,
+            _ => unreachable!(),
+        };
+
+        assert_eq!(a_reference.get(), Some((0, 0)));
+        assert_eq!(b_reference.get(), Some((0, 1)));
+    }
+
+    #[test]
+    fn resolve_sets_depth_for_multiple_enclosing_scopes() {
+        let statements = vec![Stmt::Block {
+            statements: vec![
+                Stmt::Var {
+                    name: "a".to_string(),
+                    initializer: None,
+                    env_location: Cell::new(None),
+                },
+                Stmt::Block {
+                    statements: vec![Stmt::Block {
+                        statements: vec![Stmt::ExpressionStmt {
+                            expr: Expr::Variable {
+                                name: "a".to_string(),
+                                env_location: Cell::new(None),
+                            },
+                        }],
+                    }],
+                },
+            ],
+        }];
+
+        let mut resolver = Resolver::default();
+        resolver.resolve(&statements).unwrap();
+
+        let reference = match &statements[0] {
+            Stmt::Block { statements } => match &statements[1] {
+                Stmt::Block { statements } => match &statements[0] {
+                    Stmt::Block { statements } => match &statements[0] {
+                        Stmt::ExpressionStmt {
+                            expr: Expr::Variable { env_location, .. },
+                        } => env_location,
+                        _ => unreachable!(),
+                    },
+                    _ => unreachable!(),
+                },
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        };
+
+        assert_eq!(reference.get(), Some((2, 0)));
+    }
+
+    #[test]
+    fn resolve_leaves_global_variable_unresolved() {
+        let statements = vec![Stmt::ExpressionStmt {
+            expr: Expr::Variable {
+                name: "global".to_string(),
+                env_location: Cell::new(None),
+            },
+        }];
+
+        let mut resolver = Resolver::default();
+        resolver.resolve(&statements).unwrap();
+
+        let reference = match &statements[0] {
+            Stmt::ExpressionStmt {
+                expr: Expr::Variable { env_location, .. },
+            } => env_location,
+            _ => unreachable!(),
+        };
+
+        assert_eq!(reference.get(), None);
+    }
+
+    #[test]
+    fn resolve_sets_assignment_scope_depth_and_slot() {
+        let statements = vec![Stmt::Block {
+            statements: vec![
+                Stmt::Var {
+                    name: "a".to_string(),
+                    initializer: None,
+                    env_location: Cell::new(None),
+                },
+                Stmt::Block {
+                    statements: vec![Stmt::ExpressionStmt {
+                        expr: Expr::Assign {
+                            name: "a".to_string(),
+                            value: Box::new(Expr::Literal {
+                                value: Literal::Float(2.0),
+                            }),
+                            env_location: Cell::new(None),
+                        },
+                    }],
+                },
+            ],
+        }];
+
+        let mut resolver = Resolver::default();
+        resolver.resolve(&statements).unwrap();
+
+        let assignment = match &statements[0] {
+            Stmt::Block { statements } => match &statements[1] {
+                Stmt::Block { statements } => match &statements[0] {
+                    Stmt::ExpressionStmt {
+                        expr: Expr::Assign { env_location, .. },
+                    } => env_location,
+                    _ => unreachable!(),
+                },
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        };
+
+        assert_eq!(assignment.get(), Some((1, 0)));
+    }
+
+    #[test]
+    fn resolve_uses_nearest_shadowing_declaration() {
+        let statements = vec![Stmt::Block {
+            statements: vec![
+                Stmt::Var {
+                    name: "a".to_string(),
+                    initializer: None,
+                    env_location: Cell::new(None),
+                },
+                Stmt::Block {
+                    statements: vec![
+                        Stmt::Var {
+                            name: "a".to_string(),
+                            initializer: None,
+                            env_location: Cell::new(None),
+                        },
+                        Stmt::ExpressionStmt {
+                            expr: Expr::Variable {
+                                name: "a".to_string(),
+                                env_location: Cell::new(None),
+                            },
+                        },
+                    ],
+                },
+            ],
+        }];
+
+        let mut resolver = Resolver::default();
+        resolver.resolve(&statements).unwrap();
+
+        let reference = match &statements[0] {
+            Stmt::Block { statements } => match &statements[1] {
+                Stmt::Block { statements } => match &statements[1] {
+                    Stmt::ExpressionStmt {
+                        expr: Expr::Variable { env_location, .. },
+                    } => env_location,
+                    _ => unreachable!(),
+                },
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        };
+
+        assert_eq!(reference.get(), Some((0, 0)));
+    }
+
+    #[test]
     fn resolve_sets_scope_depth_for_call_callee_variable() {
         let statements = vec![Stmt::Block {
             statements: vec![
@@ -295,6 +500,7 @@ mod tests {
                     name: Token::new(TokenType::Identifier, "show".to_string(), 1),
                     params: vec![],
                     body: vec![],
+                    env_location: Cell::new(None),
                 },
                 Stmt::ExpressionStmt {
                     expr: Expr::Call {
@@ -332,7 +538,7 @@ mod tests {
             _ => unreachable!(),
         };
 
-        assert_eq!(callee_scope_depth.get(), Some((0, 1)));
+        assert_eq!(callee_scope_depth.get(), Some((0, 0)));
     }
 
     #[test]
@@ -346,7 +552,9 @@ mod tests {
                     name: "a".to_string(),
                     env_location: Cell::new(None),
                 }),
+                env_location: Cell::new(None),
             }],
+            env_location: Cell::new(None),
         }];
 
         let mut resolver = Resolver::default();
@@ -365,10 +573,12 @@ mod tests {
                 Stmt::Var {
                     name: "a".to_string(),
                     initializer: None,
+                    env_location: Cell::new(None),
                 },
                 Stmt::Var {
                     name: "a".to_string(),
                     initializer: None,
+                    env_location: Cell::new(None),
                 },
             ],
         }];
@@ -408,6 +618,7 @@ mod tests {
                     value: Literal::Float(1.0),
                 }),
             }],
+            env_location: Cell::new(None),
         }];
 
         let mut resolver = Resolver::default();
