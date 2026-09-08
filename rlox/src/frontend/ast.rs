@@ -136,7 +136,7 @@ impl fmt::Display for Expr {
                 write!(f, "{value}")
             }
             Self::Variable { name, env_location } => match env_location.get() {
-                Some(location) => write!(f, "{name}, location= {:?}", location),
+                Some(location) => write!(f, "{name}, location= {location:?}"),
                 None => write!(f, "{name}"),
             },
             Self::Assign { name, value, .. } => {

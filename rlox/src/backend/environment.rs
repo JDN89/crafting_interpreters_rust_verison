@@ -13,6 +13,12 @@ pub struct GlobalEnvironment {
     values: FxHashMap<String, LoxValue>,
 }
 
+impl Default for GlobalEnvironment {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GlobalEnvironment {
     #[must_use]
     pub fn new() -> Self {

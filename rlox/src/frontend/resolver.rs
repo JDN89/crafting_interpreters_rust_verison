@@ -62,10 +62,10 @@ impl Resolver {
                 }
 
                 // If this declaration is local, record its slot.
-                if let Some(scope) = self.scopes.last() {
-                    if let Some((slot, _)) = scope.get(name) {
-                        env_location.set(Some((0, *slot)));
-                    }
+                if let Some(scope) = self.scopes.last()
+                    && let Some((slot, _)) = scope.get(name)
+                {
+                    env_location.set(Some((0, *slot)));
                 }
 
                 self.define(name);
@@ -88,10 +88,10 @@ impl Resolver {
                 env_location,
             } => {
                 self.declare(&name.lexeme)?;
-                if let Some(scope) = self.scopes.last() {
-                    if let Some((slot, _is_defined)) = scope.get(&name.lexeme) {
-                        env_location.set(Some((0, *slot)));
-                    }
+                if let Some(scope) = self.scopes.last()
+                    && let Some((slot, _is_defined)) = scope.get(&name.lexeme)
+                {
+                    env_location.set(Some((0, *slot)));
                 }
                 self.define(&name.lexeme);
                 self.resolve_function(params, body)?;
@@ -198,12 +198,11 @@ impl Resolver {
     #[allow(clippy::arithmetic_side_effects)]
     fn resolve_local(&self, name: &str, env_location: &Cell<Option<(Depth, Slot)>>) {
         for (index, scope) in self.scopes.iter().enumerate().rev() {
-            if scope.contains_key(name) {
+            if let Some((slot, _)) = scope.get(name) {
                 let depth = self.scopes.len() - 1 - index;
                 // Retrieve the slot form the scope that was defined during declaration
-                let slot = scope.get(name).unwrap().0;
 
-                env_location.set(Some((depth, slot)));
+                env_location.set(Some((depth, *slot)));
                 return;
             }
         }

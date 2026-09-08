@@ -34,8 +34,7 @@ impl Interpreter {
 
         Self {
             // NOTE: globals is env that is accessbile for everyone
-            globals: globals,
-            //BUG: possibility of bug at this stage. We used to clone globals for our local environment
+            globals,
             environment: Environment::new(),
         }
     }
