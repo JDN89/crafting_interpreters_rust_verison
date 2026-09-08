@@ -12,7 +12,6 @@ pub enum LoxValue {
     Boolean(bool),
     Float(f64),
     Nil,
-    // TODO: replace dyn trait later with enum variant. more explicit
     Callable(Rc<dyn LoxCallable>),
 }
 

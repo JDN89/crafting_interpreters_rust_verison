@@ -48,8 +48,6 @@ impl<'a> Lexer<'a> {
         self.current >= self.source.len()
     }
 
-    // TODO iterator might be slow. O(n) vs O(1). We beginnen alitjd vanaf start. kunnen we niet gewoon in de juiste positie indexen?
-    //
     #[allow(
         clippy::expect_used,
         clippy::arithmetic_side_effects,

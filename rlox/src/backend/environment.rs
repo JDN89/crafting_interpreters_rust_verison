@@ -90,13 +90,7 @@ impl Environment {
         Ok(current)
     }
 
-    pub fn assign_at(
-        env: &Env,
-        depth: usize,
-        slot: usize,
-        name: &str,
-        value: LoxValue,
-    ) -> Result<()> {
+    pub fn assign_at(env: &Env, depth: usize, slot: usize, value: LoxValue) -> Result<()> {
         let ancestor = Self::ancestor(env, depth)?;
         let mut ancestor = ancestor.borrow_mut();
 

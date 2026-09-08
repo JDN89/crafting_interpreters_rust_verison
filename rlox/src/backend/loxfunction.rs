@@ -44,17 +44,11 @@ impl LoxCallable for LoxFunction {
         };
 
         // bind params to arguments and store then in the local enviroment
-        // RESEARCH: for define is slot and depth needed?
-        for (arg, param) in arguments.into_iter().zip(params) {
+        for (arg, _param) in arguments.into_iter().zip(params) {
             env.borrow_mut().define(arg);
         }
 
         // evaluate the function block and return the value to who needs it.
-        // That value then gets used by the surrounding code, for example:
-        // - print foo(); prints it
-        // - var x = foo(); stores it
-        // - bar(foo()); passes it as an argument
-        // - return foo(); returns it again from the outer function
         match interpreter.execute_block(body, env)? {
             ExecSignal::Normal => Ok(LoxValue::Nil),
             ExecSignal::Return(value) => Ok(value),

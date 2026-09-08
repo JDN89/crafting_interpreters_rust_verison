@@ -10,8 +10,6 @@ enum FunctionType {
 }
 
 pub struct Resolver {
-    //TODO: store Slot and bool in the hashmap. We store the slot index during the declaration.
-    // I was going to determine slot from hashmap len(),which is wrong because by then we might have more elements in the hashmap.
     scopes: Vec<HashMap<String, (Slot, bool)>>,
     current_function: FunctionType,
 }
@@ -83,7 +81,6 @@ impl Resolver {
                 self.resolve_expression(condition)?;
                 self.resolve_statement(body)?;
             }
-            // TODO: probably name can be String or stirng interned instead of passing the whole token?
             Stmt::Function {
                 name,
                 params,
@@ -140,13 +137,10 @@ impl Resolver {
                 self.resolve_expression(value)?;
                 self.resolve_local(name, env_location);
             }
-            // TODO : I think we will have to add the slot and VAlue to Expr::Literal and fill it in here during the resolving of Expr::Literal
-            // probably we have to do the Same for Expr::Assign and Expr::Variable And LoxFunction? FunctionCall
             Expr::Literal { value: _ } => (),
             Expr::Unary { op: _op, right } => {
                 self.resolve_expression(right)?;
             }
-            //TODO this looks cursed. I forgot what I am doing hre
             Expr::Variable { name, env_location } => {
                 if let Some(scope) = self.scopes.last()
                     && scope.get(name).is_some_and(|(_, is_defined)| !*is_defined)
@@ -198,8 +192,9 @@ impl Resolver {
         Ok(())
     }
 
-    // TODO SEE IT's ehre that we resolve the local whcih means set the depth of the var name!!!
-    // NOTE: in they book the keep this in a seperate map in the interpreter. Reason, otherwise rewrite was needed -- extra pages and ink. Limitation does not exist here, so I store in AST node itself.
+    // NOTE: in they book the keep this in a seperate map in the interpreter.
+    // Reason, otherwise rewrite was needed -- extra pages and ink.
+    // Limitation does not exist here, so I store in AST node itself.
     #[allow(clippy::arithmetic_side_effects)]
     fn resolve_local(&self, name: &str, env_location: &Cell<Option<(Depth, Slot)>>) {
         for (index, scope) in self.scopes.iter().enumerate().rev() {
