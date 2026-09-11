@@ -2,6 +2,7 @@ use std::cell::Cell;
 
 use anyhow::{Context, Result, bail};
 
+use crate::frontend::ast::Ast;
 use crate::frontend::ast::Literal;
 use crate::frontend::ast::Stmt;
 use crate::frontend::ast::{Expr, Operator};
@@ -220,8 +221,8 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Vec<Stmt>> {
-        let mut statements: Vec<Stmt> = Vec::new();
+    pub fn parse(&mut self) -> Result<Ast> {
+        let mut statements: Ast = Ast::new();
         while !self.is_at_end() {
             if let Some(statement) = self.parse_declaration() {
                 statements.push(statement);

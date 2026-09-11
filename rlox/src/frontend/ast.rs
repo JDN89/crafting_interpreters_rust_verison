@@ -8,6 +8,37 @@ use crate::frontend::token::{Token, TokenType};
 pub type Depth = usize;
 pub type Slot = usize;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ExprId(u32);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct StmtId(u32);
+
+pub struct Ast {
+    expressions: Vec<Expr>,
+    statements: Vec<Stmt>,
+}
+
+// TODO find out if I can, based on number of tokes. create a fixed length Vecs?
+impl Ast {
+    pub fn new() -> Self {
+        Self {
+            expressions: Vec::new(),
+            statements: Vec::new(),
+        }
+    }
+    pub fn push_expression(&mut self, expr: Expr) -> ExprId {
+        let id = ExprId(self.expressions.len() as u32);
+        self.expressions.push(expr);
+        return id;
+    }
+
+    pub fn push_statment(&mut self, stmt: Stmt) -> StmtId {
+        let id = StmtId(self.statements.len() as u32);
+        self.statements.push(stmt);
+        return id;
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
     Str(String),
@@ -85,23 +116,23 @@ impl fmt::Display for Operator {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Logical {
-        left: Box<Self>,
+        left: Box<ExprId>,
         op: TokenType,
-        right: Box<Self>,
+        right: Box<ExprId>,
     },
     Binary {
-        left: Box<Self>,
+        left: Box<ExprId>,
         op: Operator,
-        right: Box<Self>,
+        right: Box<ExprId>,
     },
     Call {
-        callee: Box<Self>,
+        callee: Box<ExprId>,
         paren: TokenType,
-        arguments: Vec<Self>,
+        arguments: Vec<ExprId>,
     },
     Assign {
         name: String,
-        value: Box<Self>,
+        value: Box<ExprId>,
         env_location: Cell<Option<(Depth, Slot)>>,
     },
     Literal {
@@ -109,14 +140,14 @@ pub enum Expr {
     },
     Unary {
         op: Operator,
-        right: Box<Self>,
+        right: Box<ExprId>,
     },
     Variable {
         name: String,
         env_location: Cell<Option<(Depth, Slot)>>,
     },
     Grouping {
-        value: Box<Self>,
+        value: Box<ExprId>,
     },
 }
 
@@ -157,38 +188,38 @@ impl fmt::Display for Expr {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
     IfStatement {
-        condition: Expr,
-        then_branch: Box<Self>,
-        else_branch: Option<Box<Self>>,
+        condition: ExprId,
+        then_branch: StmtId,
+        else_branch: StmtId,
     },
     ExpressionStmt {
-        expr: Expr,
+        expr: ExprId,
     },
     PrintStmt {
-        expr: Expr,
+        expr: ExprId,
     },
     Return {
         keyword: Token,
-        value: Option<Expr>,
+        value: Option<ExprId>,
     },
     // NOTE: var declaration has optional initializer
     Var {
         name: String,
-        initializer: Option<Expr>,
+        initializer: Option<ExprId>,
         env_location: Cell<Option<(Depth, Slot)>>,
     },
     Block {
-        statements: Vec<Self>,
+        statements: Vec<StmtId>,
     },
     While {
-        condition: Expr,
-        body: Box<Self>,
+        condition: ExprId,
+        body: Box<StmtId>,
     },
 
     Function {
         name: Token,
         params: Vec<Token>,
-        body: Vec<Self>,
+        body: Vec<StmtId>,
         env_location: Cell<Option<(Depth, Slot)>>,
     },
 }
