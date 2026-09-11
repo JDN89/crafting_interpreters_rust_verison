@@ -12,6 +12,7 @@ pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
     errors: Vec<String>,
+    ast: Ast,
 }
 
 impl Parser {
@@ -21,6 +22,7 @@ impl Parser {
             tokens,
             current: 0,
             errors: Vec::new(),
+            ast: Ast::new(),
         }
     }
 
@@ -222,15 +224,17 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<Ast> {
-        let mut statements: Ast = Ast::new();
         while !self.is_at_end() {
             if let Some(statement) = self.parse_declaration() {
-                statements.push(statement);
+                self.ast.push_statment(statement);
             }
         }
 
+        //TODO I feel like passing a reference to the AST should be enough.
+        // In the resolver and interpreter we won't mutate the ast
+        // I we do mutate in the resovler. We add depth and slot to the ast node
         if self.errors.is_empty() {
-            Ok(statements)
+            Ok(self.ast.clone())
         } else {
             bail!(self.errors.join("\n"))
         }
@@ -304,7 +308,8 @@ impl Parser {
         let name = self.previous().lexeme.clone();
 
         let initializer = if self.match_ttype(&[TokenType::Equal]) {
-            Some(self.expression()?)
+            let expr = self.expression()?;
+            Some(self.ast.push_expression(expr))
         } else {
             None
         };
@@ -335,6 +340,7 @@ impl Parser {
                 return Ok(Expr::Assign {
                     name: name.clone(),
                     value: Box::new(value),
+                    Some(self.ast.push_expression_and_return_index(expr))
                     env_location: Cell::new(None),
                 });
             }

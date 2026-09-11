@@ -10,17 +10,29 @@ pub type Slot = usize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ExprId(u32);
+
+impl fmt::Display for ExprId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct StmtId(u32);
+impl fmt::Display for StmtId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct Ast {
-    expressions: Vec<Expr>,
-    statements: Vec<Stmt>,
+    pub expressions: Vec<Expr>,
+    pub statements: Vec<Stmt>,
 }
 
 // TODO find out if I can, based on number of tokes. create a fixed length Vecs?
 impl Ast {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             expressions: Vec::new(),
             statements: Vec::new(),
@@ -36,6 +48,16 @@ impl Ast {
         let id = StmtId(self.statements.len() as u32);
         self.statements.push(stmt);
         return id;
+    }
+
+    // TODO normaly .clone form function but see if reference is enough at the places where you call this
+    pub fn get_expression(&mut self, id: ExprId) -> Option<&Expr> {
+        self.expressions.get(id.0 as usize)
+    }
+
+    // TODO normaly .clone form function but see if reference is enough at the places where you call this
+    pub fn get_statement(&mut self, id: StmtId) -> Option<&Stmt> {
+        self.statements.get(id.0 as usize)
     }
 }
 
