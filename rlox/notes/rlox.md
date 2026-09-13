@@ -315,6 +315,9 @@ pub struct Environment {
 - cargo check with less
 - start fixing the parser tests, but the code doesn't compile so I will postpone fixing the tests until the refactor is done. annoying that you have to fix everything before you can run the unit tests of one file. Probably I'm doing somehting wrong. look into this
 - use this command to navigate output of cargo check: `cargo check --color=always 2>&1 | moor`. Navigating the output was a headache
+- Look into RAII, and error capturing in closure so the rest of the code gets executed and we have a good state. Look at error capture in scope resolver.rs
+  - this might be a bit like defer in golang. in our case we defer the error -> closure returns early upon error, but the error get stored in temp var, allowing the rest of the code to be executed.
+  - https://go.dev/tour/flowcontrol/12
 
 ### References
 
