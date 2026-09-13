@@ -44,7 +44,7 @@ impl Ast {
         return id;
     }
 
-    pub fn push_statment(&mut self, stmt: Stmt) -> StmtId {
+    pub fn push_statement(&mut self, stmt: Stmt) -> StmtId {
         let id = StmtId(self.statements.len() as u32);
         self.statements.push(stmt);
         return id;
@@ -138,23 +138,23 @@ impl fmt::Display for Operator {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Logical {
-        left: Box<ExprId>,
+        left: ExprId,
         op: TokenType,
-        right: Box<ExprId>,
+        right: ExprId,
     },
     Binary {
-        left: Box<ExprId>,
+        left: ExprId,
         op: Operator,
-        right: Box<ExprId>,
+        right: ExprId,
     },
     Call {
-        callee: Box<ExprId>,
+        callee: ExprId,
         paren: TokenType,
         arguments: Vec<ExprId>,
     },
     Assign {
         name: String,
-        value: Box<ExprId>,
+        value: ExprId,
         env_location: Cell<Option<(Depth, Slot)>>,
     },
     Literal {
@@ -162,14 +162,14 @@ pub enum Expr {
     },
     Unary {
         op: Operator,
-        right: Box<ExprId>,
+        right: ExprId,
     },
     Variable {
         name: String,
         env_location: Cell<Option<(Depth, Slot)>>,
     },
     Grouping {
-        value: Box<ExprId>,
+        value: ExprId,
     },
 }
 
@@ -212,7 +212,7 @@ pub enum Stmt {
     IfStatement {
         condition: ExprId,
         then_branch: StmtId,
-        else_branch: StmtId,
+        else_branch: Option<StmtId>,
     },
     ExpressionStmt {
         expr: ExprId,
@@ -235,7 +235,7 @@ pub enum Stmt {
     },
     While {
         condition: ExprId,
-        body: Box<StmtId>,
+        body: StmtId,
     },
 
     Function {

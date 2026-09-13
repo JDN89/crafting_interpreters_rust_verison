@@ -5,6 +5,7 @@ use anyhow::{Context, Result, bail};
 use crate::frontend::ast::Ast;
 use crate::frontend::ast::Literal;
 use crate::frontend::ast::Stmt;
+use crate::frontend::ast::StmtId;
 use crate::frontend::ast::{Expr, Operator};
 use crate::frontend::token::{Token, TokenType};
 
@@ -87,10 +88,10 @@ impl Parser {
             let right = self.term()?;
 
             expr = Expr::Binary {
-                left: Box::new(expr),
+                left: self.ast.push_expression(expr),
                 op: Operator::from_token_type(operator_type)
                     .context("Could not convert token type to operator")?,
-                right: Box::new(right),
+                right: self.ast.push_expression(right),
             }
         }
         Ok(expr)
@@ -103,10 +104,10 @@ impl Parser {
             let operator_type = self.previous().ttype;
             let right = self.comparison()?;
             expr = Expr::Binary {
-                left: Box::new(expr),
+                left: self.ast.push_expression(expr),
                 op: Operator::from_token_type(operator_type)
                     .context("Could not convert token type to operator")?,
-                right: Box::new(right),
+                right: self.ast.push_expression(right),
             }
         }
         Ok(expr)
@@ -122,10 +123,10 @@ impl Parser {
             let operator_type = self.previous().ttype;
             let right = self.factor()?;
             expr = Expr::Binary {
-                left: Box::new(expr),
+                left: self.ast.push_expression(expr),
                 op: Operator::from_token_type(operator_type)
                     .context("Could not convert token type to operator")?,
-                right: Box::new(right),
+                right: self.ast.push_expression(right),
             }
         }
         Ok(expr)
@@ -137,10 +138,10 @@ impl Parser {
             let operator = self.previous().ttype;
             let right = self.unary()?;
             expr = Expr::Binary {
-                left: Box::new(expr),
+                left: self.ast.push_expression(expr),
                 op: Operator::from_token_type(operator)
                     .context("Could not convert token type to operator")?,
-                right: Box::new(right),
+                right: self.ast.push_expression(right),
             }
         }
         Ok(expr)
@@ -153,7 +154,7 @@ impl Parser {
             Ok(Expr::Unary {
                 op: Operator::from_token_type(operator)
                     .context("Could not convert token type to operator")?,
-                right: Box::new(right),
+                right: self.ast.push_expression(right),
             })
         } else {
             self.call()
@@ -204,7 +205,7 @@ impl Parser {
             let expr = self.expression()?;
             self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
             return Ok(Expr::Grouping {
-                value: Box::new(expr),
+                value: self.ast.push_expression(expr),
             });
         }
 
@@ -223,10 +224,11 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Ast> {
+    //NOTE mut self, moves ownership out of parse {scope} and thus the parser
+    pub fn parse(mut self) -> Result<Ast> {
         while !self.is_at_end() {
             if let Some(statement) = self.parse_declaration() {
-                self.ast.push_statment(statement);
+                self.ast.push_statement(statement);
             }
         }
 
@@ -234,7 +236,7 @@ impl Parser {
         // In the resolver and interpreter we won't mutate the ast
         // I we do mutate in the resovler. We add depth and slot to the ast node
         if self.errors.is_empty() {
-            Ok(self.ast.clone())
+            Ok(self.ast)
         } else {
             bail!(self.errors.join("\n"))
         }
@@ -249,14 +251,15 @@ impl Parser {
             self.consume(TokenType::RightParen, "Expect ')' after if condition.")?;
             let then_branch: Stmt = self.parse_statement()?;
             let else_branch = if self.match_ttype(&[TokenType::Else]) {
-                Some(Box::new(self.parse_statement()?))
+                let stmt = self.parse_statement()?;
+                Some(self.ast.push_statement(stmt))
             } else {
                 None
             };
 
             Ok(Stmt::IfStatement {
-                condition,
-                then_branch: Box::new(then_branch),
+                condition: self.ast.push_expression(condition),
+                then_branch: self.ast.push_statement(then_branch),
                 else_branch,
             })
         } else if self.match_ttype(&[TokenType::Print]) {
@@ -294,13 +297,17 @@ impl Parser {
     fn parse_print_statement(&mut self) -> Result<Stmt> {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
-        Ok(Stmt::PrintStmt { expr })
+        Ok(Stmt::PrintStmt {
+            expr: self.ast.push_expression(expr),
+        })
     }
 
     fn parse_expression_statement(&mut self) -> Result<Stmt> {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
-        Ok(Stmt::ExpressionStmt { expr })
+        Ok(Stmt::ExpressionStmt {
+            expr: self.ast.push_expression(expr),
+        })
     }
 
     fn parse_var_declaration(&mut self) -> Result<Stmt> {
@@ -336,11 +343,11 @@ impl Parser {
         if self.match_ttype(&[TokenType::Equal]) {
             let equals = self.previous().clone(); // cloning token is cheap
             let value = self.assignment()?;
+            let expr_id = self.ast.push_expression(value);
             if let Expr::Variable { name, .. } = &expr {
                 return Ok(Expr::Assign {
                     name: name.clone(),
-                    value: Box::new(value),
-                    Some(self.ast.push_expression_and_return_index(expr))
+                    value: expr_id,
                     env_location: Cell::new(None),
                 });
             }
@@ -385,8 +392,14 @@ impl Parser {
     }
 
     fn parse_block_statement(&mut self) -> Result<Stmt> {
-        let statements = self.parse_block()?;
-        Ok(Stmt::Block { statements })
+        let mut block_statements = Vec::new();
+        for stmt in self.parse_block()? {
+            block_statements.push(self.ast.push_statement(stmt));
+        }
+
+        Ok(Stmt::Block {
+            statements: block_statements,
+        })
     }
 
     fn or(&mut self) -> Result<Expr> {
@@ -396,9 +409,9 @@ impl Parser {
             let op = TokenType::Or;
             let right = self.and()?;
             expr = Expr::Logical {
-                left: Box::new(expr),
+                left: self.ast.push_expression(expr),
                 op,
-                right: Box::new(right),
+                right: self.ast.push_expression(right),
             }
         }
         Ok(expr)
@@ -410,9 +423,9 @@ impl Parser {
             let op = TokenType::And;
             let right = self.equality()?;
             expr = Expr::Logical {
-                left: Box::new(expr),
+                left: self.ast.push_expression(expr),
                 op,
-                right: Box::new(right),
+                right: self.ast.push_expression(right),
             }
         }
         Ok(expr)
@@ -424,8 +437,8 @@ impl Parser {
         self.consume(TokenType::RightParen, "Expect ')' after condition.")?;
         let body = self.parse_statement()?;
         Ok(Stmt::While {
-            condition,
-            body: Box::new(body),
+            condition: self.ast.push_expression(condition),
+            body: self.ast.push_statement(body),
         })
     }
 
@@ -467,7 +480,12 @@ impl Parser {
         // append increment after each iteration
         if let Some(increment) = increment {
             body = Stmt::Block {
-                statements: vec![body, Stmt::ExpressionStmt { expr: increment }],
+                statements: vec![
+                    self.ast.push_statement(body),
+                    self.ast.push_statement(Stmt::ExpressionStmt {
+                        expr: self.ast.push_expression(increment),
+                    }),
+                ],
             };
         }
 
@@ -478,14 +496,17 @@ impl Parser {
 
         // Next, we take the condition and the body and build the loop using a primitive while loop
         body = Stmt::While {
-            condition,
-            body: Box::new(body),
+            condition: self.ast.push_expression(condition),
+            body: self.ast.push_statement(body),
         };
 
         // prepend initializer
         if let Some(initializer) = initializer {
             body = Stmt::Block {
-                statements: vec![initializer, body],
+                statements: vec![
+                    self.ast.push_statement(initializer),
+                    self.ast.push_statement(body),
+                ],
             };
         }
 
@@ -507,7 +528,8 @@ impl Parser {
 
         if !self.check(TokenType::RightParen) {
             loop {
-                arguments.push(self.expression()?);
+                let argument = self.expression()?;
+                arguments.push(self.ast.push_expression(argument));
 
                 if !self.match_ttype(&[TokenType::Comma]) {
                     break;
@@ -518,7 +540,7 @@ impl Parser {
         self.consume(TokenType::RightParen, "Expect ')' after arguments.")?;
 
         Ok(Expr::Call {
-            callee: Box::new(callee),
+            callee: self.ast.push_expression(callee),
             paren: TokenType::RightParen,
             arguments,
         })
@@ -550,12 +572,18 @@ impl Parser {
         }
         self.consume(TokenType::RightParen, "Expect ')' after parameters.")?;
         self.consume(TokenType::LeftBrace, "Expect '{' before function body.")?;
-        let statements = self.parse_block()?;
+
+        // REFACTOR: let parse_block return Vec<stmtId's>
+        let statement_ids = self
+            .parse_block()?
+            .into_iter()
+            .map(|stmt| self.ast.push_statement(stmt))
+            .collect();
 
         Ok(Stmt::Function {
             name,
             params: parameters,
-            body: statements,
+            body: statement_ids,
             env_location: Cell::new(None),
         })
     }
@@ -565,7 +593,7 @@ impl Parser {
         let value = if self.check(TokenType::Semicolon) {
             None
         } else {
-            Some(self.expression()?)
+            Some(self.ast.push_expression(self.expression()?))
         };
 
         self.consume(TokenType::Semicolon, "Expect ';' after return value.")?;
