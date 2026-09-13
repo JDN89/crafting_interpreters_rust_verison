@@ -307,6 +307,14 @@ pub struct Environment {
 ### Not all CPU operations are equal
 ![[Pasted image 20260827220447.png]]
 
+# Thougts
+- I don't know why I was using &mut self in the parser instead of mut self. With &mut self it's not possible to push fields out of the sturct. I think the reason was that I was generating a Vec<Stmt> that was not field of our parser sturct. So I could just return the Vec even with using &mut self.
+
+- Refactoring is easier with all the error messages
+- Still have to get used to using map etc.
+- cargo check with less
+- start fixing the parser tests, but the code doesn't compile so I will postpone fixing the tests until the refactor is done. annoying that you have to fix everything before you can run the unit tests of one file. Probably I'm doing somehting wrong. look into this
+
 ### References
 
 [Intro to Data Oriented Design for Games](https://www.youtube.com/watch?v=WwkuAqObplU)

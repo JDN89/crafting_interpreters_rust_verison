@@ -5,7 +5,6 @@ use anyhow::{Context, Result, bail};
 use crate::frontend::ast::Ast;
 use crate::frontend::ast::Literal;
 use crate::frontend::ast::Stmt;
-use crate::frontend::ast::StmtId;
 use crate::frontend::ast::{Expr, Operator};
 use crate::frontend::token::{Token, TokenType};
 
@@ -479,13 +478,15 @@ impl Parser {
 
         // append increment after each iteration
         if let Some(increment) = increment {
+            let body_id = self.ast.push_statement(body);
+
+            let increment_expr_id = self.ast.push_expression(increment);
+            let increment_stmt_id = self.ast.push_statement(Stmt::ExpressionStmt {
+                expr: increment_expr_id,
+            });
+
             body = Stmt::Block {
-                statements: vec![
-                    self.ast.push_statement(body),
-                    self.ast.push_statement(Stmt::ExpressionStmt {
-                        expr: self.ast.push_expression(increment),
-                    }),
-                ],
+                statements: vec![body_id, increment_stmt_id],
             };
         }
 
@@ -593,7 +594,8 @@ impl Parser {
         let value = if self.check(TokenType::Semicolon) {
             None
         } else {
-            Some(self.ast.push_expression(self.expression()?))
+            let expr = self.expression()?;
+            Some(self.ast.push_expression(expr))
         };
 
         self.consume(TokenType::Semicolon, "Expect ';' after return value.")?;
@@ -611,29 +613,47 @@ mod tests {
     #[test]
     fn parse_call_expression() {
         let tokens = Lexer::new("foo(1, 2);").scan_tokens().unwrap();
-        let mut parser = Parser::new(tokens);
-        let statements = parser.parse().unwrap();
+        let parser = Parser::new(tokens);
+        let mut ast = parser.parse().unwrap();
 
-        assert_eq!(statements.len(), 1);
+        assert_eq!(ast.statements.len(), 1);
+
+        let Stmt::ExpressionStmt { expr: call_id } = ast.statements[0].clone() else {
+            panic!("expected expression statement");
+        };
+
+        let Expr::Call {
+            callee,
+            paren,
+            arguments,
+        } = ast.get_expression(call_id).unwrap().clone()
+        else {
+            panic!("expected call expression");
+        };
+
+        assert_eq!(paren, TokenType::RightParen);
+        assert_eq!(arguments.len(), 2);
+
         assert_eq!(
-            statements[0],
-            Stmt::ExpressionStmt {
-                expr: Expr::Call {
-                    callee: Box::new(Expr::Variable {
-                        name: "foo".to_string(),
-                        env_location: Cell::new(None),
-                    }),
-                    paren: TokenType::RightParen,
-                    arguments: vec![
-                        Expr::Literal {
-                            value: Literal::Float(1.0),
-                        },
-                        Expr::Literal {
-                            value: Literal::Float(2.0),
-                        },
-                    ],
-                },
-            }
+            ast.get_expression(callee),
+            Some(&Expr::Variable {
+                name: "foo".to_string(),
+                env_location: Cell::new(None),
+            })
+        );
+
+        assert_eq!(
+            ast.get_expression(arguments[0]),
+            Some(&Expr::Literal {
+                value: Literal::Float(1.0),
+            })
+        );
+
+        assert_eq!(
+            ast.get_expression(arguments[1]),
+            Some(&Expr::Literal {
+                value: Literal::Float(2.0),
+            })
         );
     }
 
