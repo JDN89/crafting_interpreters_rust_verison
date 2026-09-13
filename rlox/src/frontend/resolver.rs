@@ -1,7 +1,7 @@
 use std::{cell::Cell, collections::HashMap};
 
-use crate::frontend::ast::{Depth, Expr, Slot, Stmt};
-use anyhow::{Result, bail};
+use crate::frontend::ast::{Ast, Depth, Expr, ExprId, Slot, Stmt, StmtId};
+use anyhow::{Result, anyhow, bail};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum FunctionType {
@@ -23,21 +23,40 @@ impl Default for Resolver {
     }
 }
 impl Resolver {
-    fn resolve_statement(&mut self, statement: &Stmt) -> Result<()> {
+    // ----------------HELPER functions ----------------
+    fn resolve_expression_id(&mut self, id: ExprId, ast: &Ast) -> Result<()> {
+        let expression = ast
+            .get_expression(id)
+            .ok_or_else(|| anyhow!("Invalid expression ID : {id}"))?;
+        self.resolve_expression(expression, ast);
+        Ok(())
+    }
+
+    fn resolve_statement_id(&mut self, id: StmtId, ast: &Ast) -> Result<()> {
+        let statement = ast
+            .get_statement(id)
+            .ok_or_else(|| anyhow!("Invalid statement ID : {id}"))?;
+        self.resolve_statement(statement, ast);
+        Ok(())
+    }
+
+    // ----------------------------
+
+    fn resolve_statement(&mut self, statement: &Stmt, ast: &Ast) -> Result<()> {
         match statement {
             Stmt::IfStatement {
                 condition,
                 then_branch,
                 else_branch,
             } => {
-                self.resolve_expression(condition)?;
-                self.resolve_statement(then_branch)?;
+                self.resolve_expression_id(*condition, ast)?;
+                self.resolve_statement_id(*then_branch, ast)?;
                 if let Some(else_stmt) = else_branch {
-                    self.resolve_statement(else_stmt)?;
+                    self.resolve_statement_id(*else_stmt, ast)?;
                 }
             }
             Stmt::ExpressionStmt { expr } | Stmt::PrintStmt { expr } => {
-                self.resolve_expression(expr)?;
+                self.resolve_expression_id(*expr, ast)?;
             }
             Stmt::Return {
                 keyword: _keyword,
@@ -48,7 +67,7 @@ impl Resolver {
                 }
 
                 if let Some(expr) = value {
-                    self.resolve_expression(expr)?;
+                    self.resolve_expression_id(*expr, ast)?;
                 }
             }
             Stmt::Var {
@@ -58,7 +77,7 @@ impl Resolver {
             } => {
                 self.declare(name)?;
                 if let Some(initializer_expression) = initializer {
-                    self.resolve_expression(initializer_expression)?;
+                    self.resolve_expression_id(*initializer_expression, ast)?;
                 }
 
                 // If this declaration is local, record its slot.
@@ -73,13 +92,13 @@ impl Resolver {
             Stmt::Block { statements } => {
                 self.begin_scope();
                 for statement in statements {
-                    self.resolve_statement(statement)?;
+                    self.resolve_statement_id(*statement, ast)?;
                 }
                 self.end_scope();
             }
             Stmt::While { condition, body } => {
-                self.resolve_expression(condition)?;
-                self.resolve_statement(body)?;
+                self.resolve_expression_id(*condition, ast)?;
+                self.resolve_statement_id(*body, ast)?;
             }
             Stmt::Function {
                 name,
@@ -94,39 +113,39 @@ impl Resolver {
                     env_location.set(Some((0, *slot)));
                 }
                 self.define(&name.lexeme);
-                self.resolve_function(params, body)?;
+                self.resolve_function(params, body, ast)?;
             }
         }
 
         Ok(())
     }
 
-    fn resolve_expression(&mut self, expr: &Expr) -> Result<()> {
+    fn resolve_expression(&mut self, expr: &Expr, ast: &Ast) -> Result<()> {
         match expr {
             Expr::Logical {
                 left,
                 op: _op,
                 right,
             } => {
-                self.resolve_expression(left)?;
-                self.resolve_expression(right)?;
+                self.resolve_expression_id(*left, ast)?;
+                self.resolve_expression_id(*right, ast)?;
             }
             Expr::Binary {
                 left,
                 op: _op,
                 right,
             } => {
-                self.resolve_expression(left)?;
-                self.resolve_expression(right)?;
+                self.resolve_expression_id(*left, ast)?;
+                self.resolve_expression_id(*right, ast)?;
             }
             Expr::Call {
                 callee,
                 paren: _paren,
                 arguments,
             } => {
-                self.resolve_expression(callee)?;
+                self.resolve_expression_id(*callee, ast)?;
                 for arg in arguments {
-                    self.resolve_expression(arg)?;
+                    self.resolve_expression_id(*arg, ast)?;
                 }
             }
             Expr::Assign {
@@ -134,12 +153,12 @@ impl Resolver {
                 value,
                 env_location,
             } => {
-                self.resolve_expression(value)?;
+                self.resolve_expression_id(*value, ast)?;
                 self.resolve_local(name, env_location);
             }
             Expr::Literal { value: _ } => (),
             Expr::Unary { op: _op, right } => {
-                self.resolve_expression(right)?;
+                self.resolve_expression_id(*right, ast)?;
             }
             Expr::Variable { name, env_location } => {
                 if let Some(scope) = self.scopes.last()
@@ -149,7 +168,7 @@ impl Resolver {
                 }
                 self.resolve_local(name, env_location);
             }
-            Expr::Grouping { value } => self.resolve_expression(value)?,
+            Expr::Grouping { value } => self.resolve_expression_id(*value, ast)?,
         }
 
         Ok(())
@@ -184,9 +203,9 @@ impl Resolver {
         }
     }
 
-    pub fn resolve(&mut self, statements: &[Stmt]) -> Result<()> {
-        for statement in statements {
-            self.resolve_statement(statement)?;
+    pub fn resolve(&mut self, ast: &Ast) -> Result<()> {
+        for statement in &ast.statements {
+            self.resolve_statement(statement, ast)?;
         }
 
         Ok(())
@@ -208,18 +227,39 @@ impl Resolver {
         }
     }
 
-    fn resolve_function(&mut self, params: &[super::token::Token], body: &[Stmt]) -> Result<()> {
+    // TODO lookup other places where I use &Vec<> as param instead of &[] __ slice
+    fn resolve_function(
+        &mut self,
+        params: &[super::token::Token],
+        body: &[StmtId],
+        ast: &Ast,
+    ) -> Result<()> {
         let enclosing_function = self.current_function;
         self.current_function = FunctionType::Function;
         self.begin_scope();
 
+        /*  https://stackoverflow.com/questions/2321511/what-is-meant-by-resource-acquisition-is-initialization-raii
+        NOTE: We wrapt the for loops (resolving function_body) in a result producing closure.
+        the error returns early _ ? returns early _ but is capture in the closure
+        Otherwise we return early and don't execute the rest of the function
+
+        self.end_scope()
+        self.current_function = enclosing function
+
+        leaving the resolver in a poisened state.
+        I don't have error recovery, so early return doesn't really matter...
+        But still a good pattern to know about...
+         */
         let result = (|| {
             for param in params {
                 self.declare(&param.lexeme)?;
                 self.define(&param.lexeme);
             }
 
-            self.resolve(body)
+            for statement in body {
+                self.resolve_statement_id(*statement, ast)?;
+            }
+            Ok(())
         })();
 
         self.end_scope();

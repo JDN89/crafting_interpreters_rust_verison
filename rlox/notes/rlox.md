@@ -314,6 +314,7 @@ pub struct Environment {
 - Still have to get used to using map etc.
 - cargo check with less
 - start fixing the parser tests, but the code doesn't compile so I will postpone fixing the tests until the refactor is done. annoying that you have to fix everything before you can run the unit tests of one file. Probably I'm doing somehting wrong. look into this
+- use this command to navigate output of cargo check: `cargo check --color=always 2>&1 | moor`. Navigating the output was a headache
 
 ### References
 

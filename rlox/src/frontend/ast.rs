@@ -51,12 +51,12 @@ impl Ast {
     }
 
     // TODO normaly .clone form function but see if reference is enough at the places where you call this
-    pub fn get_expression(&mut self, id: ExprId) -> Option<&Expr> {
+    pub fn get_expression(&self, id: ExprId) -> Option<&Expr> {
         self.expressions.get(id.0 as usize)
     }
 
     // TODO normaly .clone form function but see if reference is enough at the places where you call this
-    pub fn get_statement(&mut self, id: StmtId) -> Option<&Stmt> {
+    pub fn get_statement(&self, id: StmtId) -> Option<&Stmt> {
         self.statements.get(id.0 as usize)
     }
 }
