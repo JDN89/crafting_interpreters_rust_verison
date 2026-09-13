@@ -26,6 +26,13 @@ impl Default for Interpreter {
     }
 }
 
+// TODO: make helper funiton
+
+//     self.evaluate_expression_id(id) {
+//        let expr =  ast.get_expression(id).ok_or_else; {anyhow}
+//        self.evaluate_expresison(expr)
+//     }
+
 impl Interpreter {
     #[must_use]
     pub fn new() -> Self {
