@@ -8,6 +8,7 @@ use crate::backend::environment::Environment;
 use crate::backend::environment::GlobalEnvironment;
 use crate::backend::exec_signal::ExecSignal;
 use crate::backend::loxfunction::LoxFunction;
+use crate::frontend::ast::Ast;
 use crate::frontend::ast::Stmt;
 use crate::frontend::token::TokenType;
 use crate::{
@@ -46,15 +47,15 @@ impl Interpreter {
         }
     }
 
-    fn execute_statement(&mut self, statement: &Stmt) -> Result<ExecSignal> {
+    fn execute_statement(&mut self, statement: &Stmt, ast: &Ast) -> Result<ExecSignal> {
         match statement {
-            Stmt::ExpressionStmt { expr } => {
+            Stmt::ExpressionStmt { expr: expr_id } => {
                 // Discard result and propagate side effect
-                self.evaluate_expression(expr)?;
+                self.evaluate_expression(ast.get_expression(*expr_id)?, ast);
                 return Ok(ExecSignal::Normal);
             }
             Stmt::PrintStmt { expr } => {
-                let result = self.evaluate_expression(expr)?;
+                let result = self.evaluate_expression_by_id(ast, expr)?;
                 // discard result
                 println!("{result}");
                 return Ok(ExecSignal::Normal);
@@ -65,7 +66,7 @@ impl Interpreter {
                 env_location,
             } => {
                 let value = match initializer {
-                    Some(expr) => self.evaluate_expression(expr)?,
+                    Some(expr) => self.evaluate_expression_by_id(ast, expr)?,
                     None => LoxValue::Nil,
                 };
                 match env_location.get() {
@@ -85,7 +86,7 @@ impl Interpreter {
                 then_branch,
                 else_branch,
             } => {
-                if is_truthy(&self.evaluate_expression(condition)?) {
+                if is_truthy(&self.evaluate_expression(ast.get_expression(*condition)?, ast)?) {
                     return self.execute_statement(then_branch);
                 } else if let Some(stmt) = else_branch {
                     return self.execute_statement(stmt);
@@ -94,7 +95,7 @@ impl Interpreter {
                 return Ok(ExecSignal::Normal);
             }
             Stmt::While { condition, body } => {
-                while is_truthy(&self.evaluate_expression(condition)?) {
+                while is_truthy(&self.evaluate_expression(ast.get_expression(*condition)?, ast)?) {
                     match self.execute_statement(body)? {
                         ExecSignal::Normal => {}
                         signal @ ExecSignal::Return(_) => return Ok(signal),
@@ -127,13 +128,22 @@ impl Interpreter {
             }
             Stmt::Return { value, .. } => {
                 let value = match value {
-                    Some(expr) => self.evaluate_expression(expr)?,
+                    Some(expr) => self.evaluate_expression(ast.get_expression(*expr)?, ast)?,
                     None => LoxValue::Nil,
                 };
                 return Ok(ExecSignal::Return(value));
             }
         }
         Ok(ExecSignal::Normal)
+    }
+
+    // TODO: continue implementing this. I didn't use this helper function everywhere...
+    fn evaluate_expression_by_id(
+        &mut self,
+        ast: &Ast,
+        expr: &crate::frontend::ast::ExprId,
+    ) -> Result<LoxValue, anyhow::Error> {
+        Ok(self.evaluate_expression(ast.get_expression(*expr)?, ast)?)
     }
 
     fn execute_statements(&mut self, statements: &Vec<Stmt>) -> Result<ExecSignal> {
@@ -147,23 +157,29 @@ impl Interpreter {
         Ok(ExecSignal::Normal)
     }
 
-    pub fn interpret(&mut self, statements: &Vec<Stmt>) -> Result<()> {
-        match self.execute_statements(statements)? {
+    pub fn interpret(&mut self, ast: &Ast) -> Result<()> {
+        match self.execute_statements(&ast.statements)? {
             ExecSignal::Normal => Ok(()),
             ExecSignal::Return(_) => bail!("Can't return from top-level code."),
         }
     }
 
-    fn evaluate_expression(&mut self, expr: &Expr) -> Result<LoxValue> {
+    fn evaluate_expression(&mut self, expr: &Expr, ast: &Ast) -> Result<LoxValue> {
         match expr {
-            Expr::Binary { left, op, right } => self.evaluate_binary_expression(left, *op, right),
+            Expr::Binary { left, op, right } => self.evaluate_binary_expression(
+                ast.get_expression(*left)?,
+                *op,
+                ast.get_expression(*right)?,
+                ast,
+            ),
             Expr::Assign {
                 name,
                 value,
                 env_location,
             } => {
-                let evaluated_value = self.evaluate_expression(value)?;
+                let evaluated_value = self.evaluate_expression(ast.get_expression(*value)?, ast)?;
 
+                // TODO: look at how to remove.clone
                 match env_location.get() {
                     Some((depth, slot)) => Environment::assign_at(
                         &self.environment,
@@ -180,7 +196,7 @@ impl Interpreter {
             }
             Expr::Literal { value } => Ok(LoxValue::from(value.clone())),
             Expr::Unary { op, right } => {
-                let right = self.evaluate_expression(right)?;
+                let right = self.evaluate_expression(ast.get_expression(*right)?, ast)?;
                 match op {
                     Operator::Plus => Ok(right),
                     Operator::Minus => negate_value(&right),
@@ -193,19 +209,22 @@ impl Interpreter {
                 Some((depth, slot)) => Environment::get_at(&self.environment, depth, slot, name),
                 None => self.globals.get_global_value(name),
             },
-            Expr::Grouping { value } => self.evaluate_expression(value),
-            Expr::Logical { left, op, right } => {
-                self.evalutate_logical_expression(left, *op, right)
-            }
+            Expr::Grouping { value } => self.evaluate_expression(ast.get_expression(*value)?, ast),
+            Expr::Logical { left, op, right } => self.evalutate_logical_expression(
+                ast.get_expression(*left)?,
+                *op,
+                ast.get_expression(*right)?,
+                ast,
+            ),
             Expr::Call {
                 callee,
                 paren,
                 arguments,
             } => {
-                let callee = self.evaluate_expression(callee)?;
+                let callee = self.evaluate_expression(ast.get_expression(*callee)?, ast)?;
                 let mut args = Vec::new();
                 for arg in arguments {
-                    args.push(self.evaluate_expression(arg)?);
+                    args.push(self.evaluate_expression(ast.get_expression(*arg)?, ast)?);
                 }
 
                 let LoxValue::Callable(function) = callee else {
@@ -233,9 +252,10 @@ impl Interpreter {
         left: &Expr,
         op: Operator,
         right: &Expr,
+        ast: &Ast,
     ) -> Result<LoxValue> {
-        let left = self.evaluate_expression(left)?;
-        let right = self.evaluate_expression(right)?;
+        let left = self.evaluate_expression(left, ast)?;
+        let right = self.evaluate_expression(right, ast)?;
         match op {
             Operator::Plus => addition(left, right),
             Operator::Minus => subtraction(left, right),
@@ -268,8 +288,9 @@ impl Interpreter {
         left: &Expr,
         op: TokenType,
         right: &Expr,
+        ast: &Ast,
     ) -> Result<LoxValue> {
-        let left = self.evaluate_expression(left)?;
+        let left = self.evaluate_expression(left, ast)?;
 
         if op == TokenType::Or {
             if is_truthy(&left) {
@@ -282,7 +303,7 @@ impl Interpreter {
             }
         }
 
-        self.evaluate_expression(right)
+        self.evaluate_expression(right, ast)
     }
 }
 

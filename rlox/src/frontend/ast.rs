@@ -51,13 +51,17 @@ impl Ast {
     }
 
     // TODO normaly .clone form function but see if reference is enough at the places where you call this
-    pub fn get_expression(&self, id: ExprId) -> Option<&Expr> {
-        self.expressions.get(id.0 as usize)
+    pub fn get_expression(&self, id: ExprId) -> Result<&Expr> {
+        self.expressions
+            .get(id.0 as usize)
+            .ok_or_else(|| anyhow!("failed to fetch expression at: {id}"))
     }
 
     // TODO normaly .clone form function but see if reference is enough at the places where you call this
-    pub fn get_statement(&self, id: StmtId) -> Option<&Stmt> {
-        self.statements.get(id.0 as usize)
+    pub fn get_statement(&self, id: StmtId) -> Result<&Stmt> {
+        self.statements
+            .get(id.0 as usize)
+            .ok_or_else(|| anyhow!("Failed to fetch statement at: {id}"))
     }
 }
 

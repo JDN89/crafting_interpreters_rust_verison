@@ -1,7 +1,7 @@
 use std::{cell::Cell, collections::HashMap};
 
 use crate::frontend::ast::{Ast, Depth, Expr, ExprId, Slot, Stmt, StmtId};
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Result, bail};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum FunctionType {
@@ -24,18 +24,14 @@ impl Default for Resolver {
 }
 impl Resolver {
     // ----------------HELPER functions ----------------
-    fn resolve_expression_id(&mut self, id: ExprId, ast: &Ast) -> Result<()> {
-        let expression = ast
-            .get_expression(id)
-            .ok_or_else(|| anyhow!("Invalid expression ID : {id}"))?;
+    fn resolve_expression_by_id(&mut self, id: ExprId, ast: &Ast) -> Result<()> {
+        let expression = ast.get_expression(id)?;
         self.resolve_expression(expression, ast);
         Ok(())
     }
 
-    fn resolve_statement_id(&mut self, id: StmtId, ast: &Ast) -> Result<()> {
-        let statement = ast
-            .get_statement(id)
-            .ok_or_else(|| anyhow!("Invalid statement ID : {id}"))?;
+    fn resolve_statement_by_id(&mut self, id: StmtId, ast: &Ast) -> Result<()> {
+        let statement = ast.get_statement(id)?;
         self.resolve_statement(statement, ast);
         Ok(())
     }
@@ -49,14 +45,14 @@ impl Resolver {
                 then_branch,
                 else_branch,
             } => {
-                self.resolve_expression_id(*condition, ast)?;
-                self.resolve_statement_id(*then_branch, ast)?;
+                self.resolve_expression_by_id(*condition, ast)?;
+                self.resolve_statement_by_id(*then_branch, ast)?;
                 if let Some(else_stmt) = else_branch {
-                    self.resolve_statement_id(*else_stmt, ast)?;
+                    self.resolve_statement_by_id(*else_stmt, ast)?;
                 }
             }
             Stmt::ExpressionStmt { expr } | Stmt::PrintStmt { expr } => {
-                self.resolve_expression_id(*expr, ast)?;
+                self.resolve_expression_by_id(*expr, ast)?;
             }
             Stmt::Return {
                 keyword: _keyword,
@@ -67,7 +63,7 @@ impl Resolver {
                 }
 
                 if let Some(expr) = value {
-                    self.resolve_expression_id(*expr, ast)?;
+                    self.resolve_expression_by_id(*expr, ast)?;
                 }
             }
             Stmt::Var {
@@ -77,7 +73,7 @@ impl Resolver {
             } => {
                 self.declare(name)?;
                 if let Some(initializer_expression) = initializer {
-                    self.resolve_expression_id(*initializer_expression, ast)?;
+                    self.resolve_expression_by_id(*initializer_expression, ast)?;
                 }
 
                 // If this declaration is local, record its slot.
@@ -92,13 +88,13 @@ impl Resolver {
             Stmt::Block { statements } => {
                 self.begin_scope();
                 for statement in statements {
-                    self.resolve_statement_id(*statement, ast)?;
+                    self.resolve_statement_by_id(*statement, ast)?;
                 }
                 self.end_scope();
             }
             Stmt::While { condition, body } => {
-                self.resolve_expression_id(*condition, ast)?;
-                self.resolve_statement_id(*body, ast)?;
+                self.resolve_expression_by_id(*condition, ast)?;
+                self.resolve_statement_by_id(*body, ast)?;
             }
             Stmt::Function {
                 name,
@@ -127,25 +123,25 @@ impl Resolver {
                 op: _op,
                 right,
             } => {
-                self.resolve_expression_id(*left, ast)?;
-                self.resolve_expression_id(*right, ast)?;
+                self.resolve_expression_by_id(*left, ast)?;
+                self.resolve_expression_by_id(*right, ast)?;
             }
             Expr::Binary {
                 left,
                 op: _op,
                 right,
             } => {
-                self.resolve_expression_id(*left, ast)?;
-                self.resolve_expression_id(*right, ast)?;
+                self.resolve_expression_by_id(*left, ast)?;
+                self.resolve_expression_by_id(*right, ast)?;
             }
             Expr::Call {
                 callee,
                 paren: _paren,
                 arguments,
             } => {
-                self.resolve_expression_id(*callee, ast)?;
+                self.resolve_expression_by_id(*callee, ast)?;
                 for arg in arguments {
-                    self.resolve_expression_id(*arg, ast)?;
+                    self.resolve_expression_by_id(*arg, ast)?;
                 }
             }
             Expr::Assign {
@@ -153,12 +149,12 @@ impl Resolver {
                 value,
                 env_location,
             } => {
-                self.resolve_expression_id(*value, ast)?;
+                self.resolve_expression_by_id(*value, ast)?;
                 self.resolve_local(name, env_location);
             }
             Expr::Literal { value: _ } => (),
             Expr::Unary { op: _op, right } => {
-                self.resolve_expression_id(*right, ast)?;
+                self.resolve_expression_by_id(*right, ast)?;
             }
             Expr::Variable { name, env_location } => {
                 if let Some(scope) = self.scopes.last()
@@ -168,7 +164,7 @@ impl Resolver {
                 }
                 self.resolve_local(name, env_location);
             }
-            Expr::Grouping { value } => self.resolve_expression_id(*value, ast)?,
+            Expr::Grouping { value } => self.resolve_expression_by_id(*value, ast)?,
         }
 
         Ok(())
@@ -257,7 +253,7 @@ impl Resolver {
             }
 
             for statement in body {
-                self.resolve_statement_id(*statement, ast)?;
+                self.resolve_statement_by_id(*statement, ast)?;
             }
             Ok(())
         })();
