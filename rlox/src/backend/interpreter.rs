@@ -9,7 +9,9 @@ use crate::backend::environment::GlobalEnvironment;
 use crate::backend::exec_signal::ExecSignal;
 use crate::backend::loxfunction::LoxFunction;
 use crate::frontend::ast::Ast;
+use crate::frontend::ast::ExprId;
 use crate::frontend::ast::Stmt;
+use crate::frontend::ast::StmtId;
 use crate::frontend::token::TokenType;
 use crate::{
     backend::value::LoxValue,
@@ -76,10 +78,8 @@ impl Interpreter {
                 return Ok(ExecSignal::Normal);
             }
             Stmt::Block { statements } => {
-                return self.execute_block(
-                    statements,
-                    Environment::new_enclosed(self.environment.clone()),
-                );
+                return self
+                    .execute_block(Environment::new_enclosed(self.environment.clone()), ast);
             }
             Stmt::IfStatement {
                 condition,
@@ -87,16 +87,16 @@ impl Interpreter {
                 else_branch,
             } => {
                 if is_truthy(&self.evaluate_expression(ast.get_expression(*condition)?, ast)?) {
-                    return self.execute_statement(then_branch);
+                    return self.execute_statement(ast.get_statement(*then_branch)?, ast);
                 } else if let Some(stmt) = else_branch {
-                    return self.execute_statement(stmt);
+                    return self.execute_statement(ast.get_statement(*stmt)?, ast);
                 }
 
                 return Ok(ExecSignal::Normal);
             }
             Stmt::While { condition, body } => {
                 while is_truthy(&self.evaluate_expression(ast.get_expression(*condition)?, ast)?) {
-                    match self.execute_statement(body)? {
+                    match self.execute_statement(ast.get_statement(*body)?, ast)? {
                         ExecSignal::Normal => {}
                         signal @ ExecSignal::Return(_) => return Ok(signal),
                     }
@@ -128,7 +128,7 @@ impl Interpreter {
             }
             Stmt::Return { value, .. } => {
                 let value = match value {
-                    Some(expr) => self.evaluate_expression(ast.get_expression(*expr)?, ast)?,
+                    Some(expr) => self.evaluate_expression_by_id(ast, expr)?,
                     None => LoxValue::Nil,
                 };
                 return Ok(ExecSignal::Return(value));
@@ -137,18 +137,21 @@ impl Interpreter {
         Ok(ExecSignal::Normal)
     }
 
+    fn evaluate_statement_by_id(&mut self, ast: &Ast, stmt_id: &StmtId) -> Result<ExecSignal> {
+        Ok(self.execute_statement(ast.get_statement(*stmt_id)?, ast)?)
+    }
     // TODO: continue implementing this. I didn't use this helper function everywhere...
     fn evaluate_expression_by_id(
         &mut self,
         ast: &Ast,
-        expr: &crate::frontend::ast::ExprId,
+        expr: &ExprId,
     ) -> Result<LoxValue, anyhow::Error> {
         Ok(self.evaluate_expression(ast.get_expression(*expr)?, ast)?)
     }
 
-    fn execute_statements(&mut self, statements: &Vec<Stmt>) -> Result<ExecSignal> {
-        for stmt in statements {
-            match self.execute_statement(stmt)? {
+    fn execute_statements(&mut self, ast: &Ast) -> Result<ExecSignal> {
+        for stmt in &ast.statements {
+            match self.execute_statement(&stmt, ast)? {
                 ExecSignal::Normal => {}
                 signal @ ExecSignal::Return(_) => return Ok(signal),
             }
@@ -158,7 +161,7 @@ impl Interpreter {
     }
 
     pub fn interpret(&mut self, ast: &Ast) -> Result<()> {
-        match self.execute_statements(&ast.statements)? {
+        match self.execute_statements(ast)? {
             ExecSignal::Normal => Ok(()),
             ExecSignal::Return(_) => bail!("Can't return from top-level code."),
         }
@@ -276,9 +279,9 @@ impl Interpreter {
         }
     }
 
-    pub fn execute_block(&mut self, statements: &Vec<Stmt>, new: Env) -> Result<ExecSignal> {
+    pub fn execute_block(&mut self, new: Env, ast: &Ast) -> Result<ExecSignal> {
         let previous_env = std::mem::replace(&mut self.environment, new);
-        let result = self.execute_statements(statements);
+        let result = self.execute_statements(ast);
         self.environment = previous_env;
         result
     }
