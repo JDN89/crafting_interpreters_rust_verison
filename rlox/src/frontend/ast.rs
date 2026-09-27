@@ -11,6 +11,12 @@ pub type Slot = usize;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ExprId(u32);
 
+impl ExprId {
+    pub fn new(_0: u32) -> Self {
+        Self(_0)
+    }
+}
+
 impl fmt::Display for ExprId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)

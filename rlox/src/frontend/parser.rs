@@ -607,6 +607,7 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::frontend::ast::ExprId;
     use crate::frontend::lexer::Lexer;
     use crate::frontend::token::Token;
 
@@ -614,7 +615,7 @@ mod tests {
     fn parse_call_expression() {
         let tokens = Lexer::new("foo(1, 2);").scan_tokens().unwrap();
         let parser = Parser::new(tokens);
-        let mut ast = parser.parse().unwrap();
+        let ast = parser.parse().unwrap();
 
         assert_eq!(ast.statements.len(), 1);
 
@@ -635,25 +636,25 @@ mod tests {
         assert_eq!(arguments.len(), 2);
 
         assert_eq!(
-            ast.get_expression(callee),
-            Some(&Expr::Variable {
+            ast.get_expression(callee).unwrap(),
+            &Expr::Variable {
                 name: "foo".to_string(),
                 env_location: Cell::new(None),
-            })
+            }
         );
 
         assert_eq!(
-            ast.get_expression(arguments[0]),
-            Some(&Expr::Literal {
+            ast.get_expression(arguments[0]).unwrap(),
+            &Expr::Literal {
                 value: Literal::Float(1.0),
-            })
+            }
         );
 
         assert_eq!(
-            ast.get_expression(arguments[1]),
-            Some(&Expr::Literal {
+            ast.get_expression(arguments[1]).unwrap(),
+            &Expr::Literal {
                 value: Literal::Float(2.0),
-            })
+            }
         );
     }
 
@@ -662,24 +663,43 @@ mod tests {
         let tokens = Lexer::new("fun add(a, b) { print a; }")
             .scan_tokens()
             .unwrap();
-        let mut parser = Parser::new(tokens);
-        let statements = parser.parse().unwrap();
+        let parser = Parser::new(tokens);
+        let ast = parser.parse().unwrap();
 
-        assert_eq!(statements.len(), 1);
+        assert_eq!(ast.statements.len(), 1);
+
+        let statement = &ast.statements[0];
+
+        let Stmt::Function {
+            name, params, body, ..
+        } = statement
+        else {
+            panic!("expected function declaration");
+        };
+
         assert_eq!(
-            statements[0],
-            Stmt::Function {
-                name: Token::new(TokenType::Identifier, "add".to_string(), 1),
-                params: vec![
-                    Token::new(TokenType::Identifier, "a".to_string(), 1),
-                    Token::new(TokenType::Identifier, "b".to_string(), 1),
-                ],
-                body: vec![Stmt::PrintStmt {
-                    expr: Expr::Variable {
-                        name: "a".to_string(),
-                        env_location: Cell::new(None),
-                    },
-                }],
+            name,
+            &Token::new(TokenType::Identifier, "add".to_string(), 1)
+        );
+
+        assert_eq!(
+            params,
+            &vec![
+                Token::new(TokenType::Identifier, "a".to_string(), 1),
+                Token::new(TokenType::Identifier, "b".to_string(), 1),
+            ]
+        );
+
+        assert_eq!(body.len(), 1);
+
+        let Stmt::PrintStmt { expr } = ast.get_statement(body[0]).unwrap() else {
+            panic!("expected print statement");
+        };
+
+        assert_eq!(
+            ast.get_expression(*expr).unwrap(),
+            &Expr::Variable {
+                name: "a".to_string(),
                 env_location: Cell::new(None),
             }
         );
@@ -688,17 +708,27 @@ mod tests {
     #[test]
     fn parse_return_statement_with_value() {
         let tokens = Lexer::new("return 123;").scan_tokens().unwrap();
-        let mut parser = Parser::new(tokens);
-        let statements = parser.parse().unwrap();
+        let parser = Parser::new(tokens);
+        let ast = parser.parse().unwrap();
 
-        assert_eq!(statements.len(), 1);
+        assert_eq!(ast.statements.len(), 1);
+
+        let Stmt::Return {
+            keyword,
+            value: Some(value),
+        } = &ast.statements[0]
+        else {
+            panic!("expected return statement with a value");
+        };
+
         assert_eq!(
-            statements[0],
-            Stmt::Return {
-                keyword: Token::new(TokenType::Return, "return".to_string(), 1),
-                value: Some(Expr::Literal {
-                    value: Literal::Float(123.0),
-                }),
+            keyword,
+            &Token::new(TokenType::Return, "return".to_string(), 1)
+        );
+        assert_eq!(
+            ast.get_expression(*value).unwrap(),
+            &Expr::Literal {
+                value: Literal::Float(123.0),
             }
         );
     }
@@ -706,12 +736,12 @@ mod tests {
     #[test]
     fn parse_return_statement_without_value() {
         let tokens = Lexer::new("return;").scan_tokens().unwrap();
-        let mut parser = Parser::new(tokens);
-        let statements = parser.parse().unwrap();
+        let parser = Parser::new(tokens);
+        let ast = parser.parse().unwrap();
 
-        assert_eq!(statements.len(), 1);
+        assert_eq!(ast.statements.len(), 1);
         assert_eq!(
-            statements[0],
+            ast.statements[0],
             Stmt::Return {
                 keyword: Token::new(TokenType::Return, "return".to_string(), 1),
                 value: None,
@@ -732,12 +762,11 @@ mod tests {
         }
 
         assert_eq!(parser.errors.len(), 1);
+
         assert_eq!(
             statements,
             vec![Stmt::PrintStmt {
-                expr: Expr::Literal {
-                    value: Literal::Float(123.0),
-                },
+                expr: ExprId::new(0)
             }]
         );
     }
