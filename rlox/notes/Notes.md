@@ -1,5 +1,7 @@
 # TODO
 
+- [ ] fix resolver tests
+- [ ] I'm sure that now we are having an issue. The vec is flat vec of statements. We are not starting from a root statement and progress to the leaves, that might be other statements/ expresions,... Run the CLI tests and pretty print the AST and especially the AST order
 - [ ] do a sweep an reduce cloning and unecessary allocating
 - [ ] implement NAN boxing
 - [ ] Fixed size arrays where possible
