@@ -4,7 +4,7 @@ use crate::{
         environment::{Env, Environment},
         exec_signal::ExecSignal,
     },
-    frontend::ast::Stmt,
+    frontend::ast::{Ast, Stmt},
 };
 
 use super::value::LoxValue;
@@ -36,10 +36,11 @@ impl LoxCallable for LoxFunction {
         &self,
         interpreter: &mut super::interpreter::Interpreter,
         arguments: Vec<LoxValue>,
+        ast: &Ast,
     ) -> anyhow::Result<LoxValue> {
         let env = Environment::new_enclosed(self.closure.clone());
 
-        let Stmt::Function { params, body, .. } = &self.declaration else {
+        let Stmt::Function { params, .. } = &self.declaration else {
             unreachable!("LoxFunction can only contain a Stmt::LoxFunction")
         };
 
@@ -49,7 +50,7 @@ impl LoxCallable for LoxFunction {
         }
 
         // evaluate the function block and return the value to who needs it.
-        match interpreter.execute_block(body, env)? {
+        match interpreter.execute_block(env, ast)? {
             ExecSignal::Normal => Ok(LoxValue::Nil),
             ExecSignal::Return(value) => Ok(value),
         }

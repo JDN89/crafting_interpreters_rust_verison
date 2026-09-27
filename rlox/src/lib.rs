@@ -13,7 +13,7 @@ pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<()> {
     let lexer = Lexer::new(source);
     let tokens = lexer.scan_tokens()?;
 
-    let mut parser = Parser::new(tokens);
+    let parser = Parser::new(tokens);
     let ast = parser.parse()?;
     let mut resolver = Resolver::default();
     resolver.resolve(&ast)?;

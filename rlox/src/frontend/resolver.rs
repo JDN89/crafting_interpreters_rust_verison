@@ -26,13 +26,13 @@ impl Resolver {
     // ----------------HELPER functions ----------------
     fn resolve_expression_by_id(&mut self, id: ExprId, ast: &Ast) -> Result<()> {
         let expression = ast.get_expression(id)?;
-        self.resolve_expression(expression, ast);
+        self.resolve_expression(expression, ast)?;
         Ok(())
     }
 
     fn resolve_statement_by_id(&mut self, id: StmtId, ast: &Ast) -> Result<()> {
         let statement = ast.get_statement(id)?;
-        self.resolve_statement(statement, ast);
+        self.resolve_statement(statement, ast)?;
         Ok(())
     }
 

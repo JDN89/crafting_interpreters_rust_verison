@@ -11,7 +11,6 @@ use crate::backend::loxfunction::LoxFunction;
 use crate::frontend::ast::Ast;
 use crate::frontend::ast::ExprId;
 use crate::frontend::ast::Stmt;
-use crate::frontend::ast::StmtId;
 use crate::frontend::token::TokenType;
 use crate::{
     backend::value::LoxValue,
@@ -28,13 +27,6 @@ impl Default for Interpreter {
         Self::new()
     }
 }
-
-// TODO: make helper funiton
-
-//     self.evaluate_expression_id(id) {
-//        let expr =  ast.get_expression(id).ok_or_else; {anyhow}
-//        self.evaluate_expresison(expr)
-//     }
 
 impl Interpreter {
     #[must_use]
@@ -53,7 +45,8 @@ impl Interpreter {
         match statement {
             Stmt::ExpressionStmt { expr: expr_id } => {
                 // Discard result and propagate side effect
-                self.evaluate_expression(ast.get_expression(*expr_id)?, ast);
+                // TODO check is this the correct pattern?
+                let _result = self.evaluate_expression(ast.get_expression(*expr_id)?, ast);
                 return Ok(ExecSignal::Normal);
             }
             Stmt::PrintStmt { expr } => {
@@ -77,7 +70,10 @@ impl Interpreter {
                 }
                 return Ok(ExecSignal::Normal);
             }
-            Stmt::Block { statements } => {
+            // TODO something is wrong here. statements is unused? probably this a a root of the AST.
+            Stmt::Block {
+                statements: _statements,
+            } => {
                 return self
                     .execute_block(Environment::new_enclosed(self.environment.clone()), ast);
             }
@@ -137,9 +133,6 @@ impl Interpreter {
         Ok(ExecSignal::Normal)
     }
 
-    fn evaluate_statement_by_id(&mut self, ast: &Ast, stmt_id: &StmtId) -> Result<ExecSignal> {
-        Ok(self.execute_statement(ast.get_statement(*stmt_id)?, ast)?)
-    }
     // TODO: continue implementing this. I didn't use this helper function everywhere...
     fn evaluate_expression_by_id(
         &mut self,
@@ -245,7 +238,7 @@ impl Interpreter {
                 let _ = paren;
                 // LoxCallable -> native and non-native functions get evaluated at this point.
                 // the function  gets evaluated and returns a value in case of a return value, in the other case we return LoxValue::NIL
-                function.call(self, args)
+                function.call(self, args, ast)
             }
         }
     }
