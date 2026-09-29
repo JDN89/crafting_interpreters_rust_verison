@@ -304,6 +304,54 @@ pub struct Environment {
 }
 ```
 
+### flate our AST tree
+
+issue I have was that I no longer had a root node. Return statement was being resolved before the function Statement, resulting in can't return from top-level code.
+
+``` js
+[src/lib.rs:18:5] &ast = Ast {
+    expressions: [
+        Literal {
+            value: Float(
+                1.0,
+            ),
+        },
+    ],
+    statements: [
+        Return {
+            keyword: Token {
+                ttype: Return,
+                lexeme: "return",
+                line: 2,
+            },
+            value: Some(
+                ExprId(
+                    0,
+                ),
+            ),
+        },
+        Function {
+            name: Token {
+                ttype: Identifier,
+                lexeme: "foo",
+                line: 1,
+            },
+            params: [],
+            body: [
+                StmtId(
+                    0,
+                ),
+            ],
+            env_location: Cell {
+                value: None,
+            },
+        },
+    ],
+}
+Error: Can't return from top-level code.
+
+```
+
 ### Not all CPU operations are equal
 ![[Pasted image 20260827220447.png]]
 
