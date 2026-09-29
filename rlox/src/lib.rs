@@ -15,6 +15,7 @@ pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<()> {
 
     let parser = Parser::new(tokens);
     let ast = parser.parse()?;
+    dbg!(&ast);
     let mut resolver = Resolver::default();
     resolver.resolve(&ast)?;
 

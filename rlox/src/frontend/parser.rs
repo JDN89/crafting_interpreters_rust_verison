@@ -666,7 +666,7 @@ mod tests {
         let parser = Parser::new(tokens);
         let ast = parser.parse().unwrap();
 
-        assert_eq!(ast.statements.len(), 1);
+        assert_eq!(ast.statements.len(), 2);
 
         let statement = &ast.statements[0];
 
