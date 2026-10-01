@@ -1,7 +1,7 @@
 # TODO
 
 - [ ] document closure (finally) concept in rust (see note in interpreter.rs)
-- [ ] cleanup code. I feel it became messy
+- [ ] walk through the program with debugger and cleanup code. remove unecessary clones and messy function flow.
 - [ ] fix resolver tests
 - [ ] do a sweep an reduce cloning and unecessary allocating
 - [ ] implement NAN boxing
