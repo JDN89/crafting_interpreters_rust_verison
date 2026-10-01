@@ -15,7 +15,7 @@ pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<()> {
 
     let parser = Parser::new(tokens);
     let ast = parser.parse()?;
-    dbg!(&ast);
+    // dbg!(&ast);
     //TODO: probably same bug in resolver then.
     let mut resolver = Resolver::default();
     resolver.resolve(&ast)?;

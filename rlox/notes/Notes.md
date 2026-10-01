@@ -1,6 +1,5 @@
 # TODO
 
-- [ ] I fixed static_scope_bug but broke fib.lox
 - [ ] document closure (finally) concept in rust (see note in interpreter.rs)
 - [ ] cleanup code. I feel it became messy
 - [ ] fix resolver tests
