@@ -16,6 +16,7 @@ pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<()> {
     let parser = Parser::new(tokens);
     let ast = parser.parse()?;
     dbg!(&ast);
+    //TODO: probably same bug in resolver then.
     let mut resolver = Resolver::default();
     resolver.resolve(&ast)?;
 
@@ -24,5 +25,7 @@ pub fn run(source: &str, interpreter: &mut Interpreter) -> Result<()> {
     //each function call. solution, make run prompt create the interpreter and pass it here. leave here
     //for now for educational purposes
     // let mut interpreter = Interpreter::new();
+
+    //TODO there must be another solution, don't want to pass this from main
     interpreter.interpret(&ast)
 }

@@ -200,7 +200,7 @@ impl Resolver {
     }
 
     pub fn resolve(&mut self, ast: &Ast) -> Result<()> {
-        for statement in &ast.statements {
+        for statement in &ast.ast_root_nodes {
             self.resolve_statement(statement, ast)?;
         }
 

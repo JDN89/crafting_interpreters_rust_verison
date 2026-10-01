@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use anyhow::Ok;
 use anyhow::{Result, bail};
 
 use crate::backend::callable::Clock;
@@ -11,6 +12,7 @@ use crate::backend::loxfunction::LoxFunction;
 use crate::frontend::ast::Ast;
 use crate::frontend::ast::ExprId;
 use crate::frontend::ast::Stmt;
+use crate::frontend::ast::StmtId;
 use crate::frontend::token::TokenType;
 use crate::{
     backend::value::LoxValue,
@@ -70,12 +72,12 @@ impl Interpreter {
                 }
                 return Ok(ExecSignal::Normal);
             }
-            // TODO something is wrong here. statements is unused? probably this a a root of the AST.
-            Stmt::Block {
-                statements: _statements,
-            } => {
-                return self
-                    .execute_block(Environment::new_enclosed(self.environment.clone()), ast);
+            Stmt::Block { statements } => {
+                return self.execute_block(
+                    Environment::new_enclosed(self.environment.clone()),
+                    statements,
+                    ast,
+                );
             }
             Stmt::IfStatement {
                 condition,
@@ -142,8 +144,8 @@ impl Interpreter {
         Ok(self.evaluate_expression(ast.get_expression(*expr)?, ast)?)
     }
 
-    fn execute_statements(&mut self, ast: &Ast) -> Result<ExecSignal> {
-        for stmt in &ast.statements {
+    fn execute_ast_root_node_statements(&mut self, ast: &Ast) -> Result<ExecSignal> {
+        for stmt in &ast.ast_root_nodes {
             match self.execute_statement(&stmt, ast)? {
                 ExecSignal::Normal => {}
                 signal @ ExecSignal::Return(_) => return Ok(signal),
@@ -154,7 +156,7 @@ impl Interpreter {
     }
 
     pub fn interpret(&mut self, ast: &Ast) -> Result<()> {
-        match self.execute_statements(ast)? {
+        match self.execute_ast_root_node_statements(ast)? {
             ExecSignal::Normal => Ok(()),
             ExecSignal::Return(_) => bail!("Can't return from top-level code."),
         }
@@ -272,9 +274,27 @@ impl Interpreter {
         }
     }
 
-    pub fn execute_block(&mut self, new: Env, ast: &Ast) -> Result<ExecSignal> {
+    pub fn execute_block(
+        &mut self,
+        new: Env,
+        statement_ids: &[StmtId],
+        ast: &Ast,
+    ) -> Result<ExecSignal> {
         let previous_env = std::mem::replace(&mut self.environment, new);
-        let result = self.execute_statements(ast);
+
+        // NOTE: sort of the rust equivalent of a finally in Java
+        // closure here, it lets us restore the environment after '?' or 'return' esits early.
+        let result = (|| {
+            for statement_id in statement_ids {
+                match self.execute_statement(ast.get_statement(*statement_id)?, ast)? {
+                    ExecSignal::Normal => {}
+                    signal @ ExecSignal::Return(_) => return Ok(signal),
+                }
+            }
+            Ok(ExecSignal::Normal)
+        })();
+
+        // closure (finally) lets us always restore the environment.
         self.environment = previous_env;
         result
     }

@@ -34,6 +34,7 @@ impl fmt::Display for StmtId {
 pub struct Ast {
     pub expressions: Vec<Expr>,
     pub statements: Vec<Stmt>,
+    pub ast_root_nodes: Vec<Stmt>,
 }
 
 // TODO find out if I can, based on number of tokes. create a fixed length Vecs?
@@ -42,6 +43,7 @@ impl Ast {
         Self {
             expressions: Vec::new(),
             statements: Vec::new(),
+            ast_root_nodes: Vec::new(),
         }
     }
     pub fn push_expression(&mut self, expr: Expr) -> ExprId {

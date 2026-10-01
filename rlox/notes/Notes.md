@@ -1,8 +1,9 @@
 # TODO
 
-- [ ] debug AST issue (we no longer have a root node) and look up the relevant part in crafting interpreters
+- [ ] I fixed static_scope_bug but broke fib.lox
+- [ ] document closure (finally) concept in rust (see note in interpreter.rs)
+- [ ] cleanup code. I feel it became messy
 - [ ] fix resolver tests
-- [ ] I'm sure that now we are having an issue. The vec is flat vec of statements. We are not starting from a root statement and progress to the leaves, that might be other statements/ expresions,... Run the CLI tests and pretty print the AST and especially the AST order
 - [ ] do a sweep an reduce cloning and unecessary allocating
 - [ ] implement NAN boxing
 - [ ] Fixed size arrays where possible

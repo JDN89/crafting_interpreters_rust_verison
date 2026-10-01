@@ -40,7 +40,13 @@ impl LoxCallable for LoxFunction {
     ) -> anyhow::Result<LoxValue> {
         let env = Environment::new_enclosed(self.closure.clone());
 
-        let Stmt::Function { params, .. } = &self.declaration else {
+        let Stmt::Function {
+            params,
+            name: _name,
+            body,
+            ..
+        } = &self.declaration
+        else {
             unreachable!("LoxFunction can only contain a Stmt::LoxFunction")
         };
 
@@ -50,7 +56,7 @@ impl LoxCallable for LoxFunction {
         }
 
         // evaluate the function block and return the value to who needs it.
-        match interpreter.execute_block(env, ast)? {
+        match interpreter.execute_block(env, body, ast)? {
             ExecSignal::Normal => Ok(LoxValue::Nil),
             ExecSignal::Return(value) => Ok(value),
         }

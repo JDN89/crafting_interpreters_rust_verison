@@ -227,7 +227,8 @@ impl Parser {
     pub fn parse(mut self) -> Result<Ast> {
         while !self.is_at_end() {
             if let Some(statement) = self.parse_declaration() {
-                self.ast.push_statement(statement);
+                self.ast.ast_root_nodes.push(statement);
+                // self.ast.push_statement(statement);
             }
         }
 
