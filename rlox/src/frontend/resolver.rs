@@ -268,99 +268,79 @@ impl Resolver {
 mod tests {
     use super::*;
     use crate::frontend::ast::Literal;
-    use crate::frontend::token::{Token, TokenType};
+    use crate::frontend::lexer::Lexer;
+    use crate::frontend::parser::Parser;
     use std::cell::Cell;
+
+    fn parse(source: &str) -> Ast {
+        Parser::new(Lexer::new(source).scan_tokens().unwrap())
+            .parse()
+            .unwrap()
+    }
 
     #[test]
     fn resolve_sets_variable_scope_depth() {
-        let statements = vec![Stmt::Block {
-            statements: vec![
-                Stmt::Var {
-                    name: "a".to_string(),
-                    initializer: Some(Expr::Literal {
-                        value: Literal::Float(1.0),
-                    }),
-                    env_location: Cell::new(None),
-                },
-                Stmt::Block {
-                    statements: vec![Stmt::Var {
-                        name: "b".to_string(),
-                        initializer: Some(Expr::Variable {
-                            name: "a".to_string(),
-                            env_location: Cell::new(None),
-                        }),
-                        env_location: Cell::new(None),
-                    }],
-                },
-            ],
-        }];
+        let mut ast = Ast::new();
+        let literal = ast.push_expression(Expr::Literal {
+            value: Literal::Float(1.0),
+        });
+        let a = ast.push_statement(Stmt::Var {
+            name: "a".to_string(),
+            initializer: Some(literal),
+            env_location: Cell::new(None),
+        });
+        let variable = ast.push_expression(Expr::Variable {
+            name: "a".to_string(),
+            env_location: Cell::new(None),
+        });
+        let b = ast.push_statement(Stmt::Var {
+            name: "b".to_string(),
+            initializer: Some(variable),
+            env_location: Cell::new(None),
+        });
+        let inner = ast.push_statement(Stmt::Block {
+            statements: vec![b],
+        });
+        let root = Stmt::Block {
+            statements: vec![a, inner],
+        };
 
         let mut resolver = Resolver::default();
-        resolver.resolve(&statements).unwrap();
+        resolver.resolve_statement(&root, &ast).unwrap();
 
-        let inner_block = match &statements[0] {
-            Stmt::Block { statements } => statements,
-            _ => unreachable!(),
+        let Expr::Variable { env_location, .. } = ast.get_expression(variable).unwrap() else {
+            unreachable!();
         };
-
-        let inner_var = match &inner_block[1] {
-            Stmt::Block { statements } => match &statements[0] {
-                Stmt::Var {
-                    initializer: Some(Expr::Variable { env_location, .. }),
-                    ..
-                } => env_location,
-                _ => unreachable!(),
-            },
-            _ => unreachable!(),
-        };
-
-        assert_eq!(inner_var.get(), Some((1, 0)));
+        assert_eq!(env_location.get(), Some((1, 0)));
     }
 
     #[test]
     fn resolve_sets_same_scope_depth_and_slot() {
-        let statements = vec![Stmt::Block {
-            statements: vec![
-                Stmt::Var {
-                    name: "a".to_string(),
-                    initializer: None,
-                    env_location: Cell::new(None),
-                },
-                Stmt::Var {
-                    name: "b".to_string(),
-                    initializer: Some(Expr::Variable {
-                        name: "a".to_string(),
-                        env_location: Cell::new(None),
-                    }),
-                    env_location: Cell::new(None),
-                },
-                Stmt::ExpressionStmt {
-                    expr: Expr::Variable {
-                        name: "b".to_string(),
-                        env_location: Cell::new(None),
-                    },
-                },
-            ],
-        }];
+        let ast = parse("{ var a; var b = a; print b; }");
 
         let mut resolver = Resolver::default();
-        resolver.resolve(&statements).unwrap();
+        let root = ast.statements.last().unwrap().clone();
+        resolver.resolve_statement(&root, &ast).unwrap();
 
-        let block_statements = match &statements[0] {
+        let block_statements = match &root {
             Stmt::Block { statements } => statements,
             _ => unreachable!(),
         };
-        let a_reference = match &block_statements[1] {
+        let a_reference = match ast.get_statement(block_statements[1]).unwrap() {
             Stmt::Var {
-                initializer: Some(Expr::Variable { env_location, .. }),
+                initializer: Some(expression),
                 ..
-            } => env_location,
+            } => match ast.get_expression(*expression).unwrap() {
+                Expr::Variable { env_location, .. } => env_location,
+                _ => unreachable!(),
+            },
             _ => unreachable!(),
         };
-        let b_reference = match &block_statements[2] {
-            Stmt::ExpressionStmt {
-                expr: Expr::Variable { env_location, .. },
-            } => env_location,
+        let b_reference = match ast.get_statement(block_statements[2]).unwrap() {
+            Stmt::PrintStmt { expr } => match ast.get_expression(*expr).unwrap() {
+                Expr::Variable { env_location, .. } => env_location,
+                _ => unreachable!(),
+            },
             _ => unreachable!(),
         };
 
@@ -370,225 +350,127 @@ mod tests {
 
     #[test]
     fn resolve_sets_depth_for_multiple_enclosing_scopes() {
-        let statements = vec![Stmt::Block {
-            statements: vec![
-                Stmt::Var {
-                    name: "a".to_string(),
-                    initializer: None,
-                    env_location: Cell::new(None),
-                },
-                Stmt::Block {
-                    statements: vec![Stmt::Block {
-                        statements: vec![Stmt::ExpressionStmt {
-                            expr: Expr::Variable {
-                                name: "a".to_string(),
-                                env_location: Cell::new(None),
-                            },
-                        }],
-                    }],
-                },
-            ],
-        }];
+        let ast = parse("{ var a; { { print a; } } }");
 
         let mut resolver = Resolver::default();
-        resolver.resolve(&statements).unwrap();
+        let root = ast.statements.last().unwrap().clone();
+        resolver.resolve_statement(&root, &ast).unwrap();
 
-        let reference = match &statements[0] {
-            Stmt::Block { statements } => match &statements[1] {
-                Stmt::Block { statements } => match &statements[0] {
-                    Stmt::Block { statements } => match &statements[0] {
-                        Stmt::ExpressionStmt {
-                            expr: Expr::Variable { env_location, .. },
-                        } => env_location,
-                        _ => unreachable!(),
-                    },
-                    _ => unreachable!(),
-                },
-                _ => unreachable!(),
-            },
-            _ => unreachable!(),
+        let Stmt::Block { statements } = &root else {
+            unreachable!()
+        };
+        let Stmt::Block { statements } = ast.get_statement(statements[1]).unwrap() else {
+            unreachable!()
+        };
+        let Stmt::Block { statements } = ast.get_statement(statements[0]).unwrap() else {
+            unreachable!()
+        };
+        let Stmt::PrintStmt { expr } = ast.get_statement(statements[0]).unwrap() else {
+            unreachable!()
+        };
+        let Expr::Variable { env_location, .. } = ast.get_expression(*expr).unwrap() else {
+            unreachable!()
         };
 
-        assert_eq!(reference.get(), Some((2, 0)));
+        assert_eq!(env_location.get(), Some((2, 0)));
     }
 
     #[test]
     fn resolve_leaves_global_variable_unresolved() {
-        let statements = vec![Stmt::ExpressionStmt {
-            expr: Expr::Variable {
-                name: "global".to_string(),
-                env_location: Cell::new(None),
-            },
-        }];
+        let ast = parse("global;");
 
         let mut resolver = Resolver::default();
-        resolver.resolve(&statements).unwrap();
+        let root = ast.statements.last().unwrap().clone();
+        resolver.resolve_statement(&root, &ast).unwrap();
 
-        let reference = match &statements[0] {
-            Stmt::ExpressionStmt {
-                expr: Expr::Variable { env_location, .. },
-            } => env_location,
-            _ => unreachable!(),
+        let Stmt::ExpressionStmt { expr } = &root else {
+            unreachable!()
         };
-
-        assert_eq!(reference.get(), None);
+        let Expr::Variable { env_location, .. } = ast.get_expression(*expr).unwrap() else {
+            unreachable!()
+        };
+        assert_eq!(env_location.get(), None);
     }
 
     #[test]
     fn resolve_sets_assignment_scope_depth_and_slot() {
-        let statements = vec![Stmt::Block {
-            statements: vec![
-                Stmt::Var {
-                    name: "a".to_string(),
-                    initializer: None,
-                    env_location: Cell::new(None),
-                },
-                Stmt::Block {
-                    statements: vec![Stmt::ExpressionStmt {
-                        expr: Expr::Assign {
-                            name: "a".to_string(),
-                            value: Box::new(Expr::Literal {
-                                value: Literal::Float(2.0),
-                            }),
-                            env_location: Cell::new(None),
-                        },
-                    }],
-                },
-            ],
-        }];
+        let ast = parse("{ var a; { a = 2; } }");
 
         let mut resolver = Resolver::default();
-        resolver.resolve(&statements).unwrap();
+        let root = ast.statements.last().unwrap().clone();
+        resolver.resolve_statement(&root, &ast).unwrap();
 
-        let assignment = match &statements[0] {
-            Stmt::Block { statements } => match &statements[1] {
-                Stmt::Block { statements } => match &statements[0] {
-                    Stmt::ExpressionStmt {
-                        expr: Expr::Assign { env_location, .. },
-                    } => env_location,
-                    _ => unreachable!(),
-                },
-                _ => unreachable!(),
-            },
-            _ => unreachable!(),
+        let Stmt::Block { statements } = &root else {
+            unreachable!()
+        };
+        let Stmt::Block { statements } = ast.get_statement(statements[1]).unwrap() else {
+            unreachable!()
+        };
+        let Stmt::ExpressionStmt { expr } = ast.get_statement(statements[0]).unwrap() else {
+            unreachable!()
+        };
+        let Expr::Assign { env_location, .. } = ast.get_expression(*expr).unwrap() else {
+            unreachable!()
         };
 
-        assert_eq!(assignment.get(), Some((1, 0)));
+        assert_eq!(env_location.get(), Some((1, 0)));
     }
 
     #[test]
     fn resolve_uses_nearest_shadowing_declaration() {
-        let statements = vec![Stmt::Block {
-            statements: vec![
-                Stmt::Var {
-                    name: "a".to_string(),
-                    initializer: None,
-                    env_location: Cell::new(None),
-                },
-                Stmt::Block {
-                    statements: vec![
-                        Stmt::Var {
-                            name: "a".to_string(),
-                            initializer: None,
-                            env_location: Cell::new(None),
-                        },
-                        Stmt::ExpressionStmt {
-                            expr: Expr::Variable {
-                                name: "a".to_string(),
-                                env_location: Cell::new(None),
-                            },
-                        },
-                    ],
-                },
-            ],
-        }];
+        let ast = parse("{ var a; { var a; print a; } }");
 
         let mut resolver = Resolver::default();
-        resolver.resolve(&statements).unwrap();
+        let root = ast.statements.last().unwrap().clone();
+        resolver.resolve_statement(&root, &ast).unwrap();
 
-        let reference = match &statements[0] {
-            Stmt::Block { statements } => match &statements[1] {
-                Stmt::Block { statements } => match &statements[1] {
-                    Stmt::ExpressionStmt {
-                        expr: Expr::Variable { env_location, .. },
-                    } => env_location,
-                    _ => unreachable!(),
-                },
-                _ => unreachable!(),
-            },
-            _ => unreachable!(),
+        let Stmt::Block { statements } = &root else {
+            unreachable!()
+        };
+        let Stmt::Block { statements } = ast.get_statement(statements[1]).unwrap() else {
+            unreachable!()
+        };
+        let Stmt::PrintStmt { expr } = ast.get_statement(statements[1]).unwrap() else {
+            unreachable!()
+        };
+        let Expr::Variable { env_location, .. } = ast.get_expression(*expr).unwrap() else {
+            unreachable!()
         };
 
-        assert_eq!(reference.get(), Some((0, 0)));
+        assert_eq!(env_location.get(), Some((0, 0)));
     }
 
     #[test]
     fn resolve_sets_scope_depth_for_call_callee_variable() {
-        let statements = vec![Stmt::Block {
-            statements: vec![
-                Stmt::Function {
-                    name: Token::new(TokenType::Identifier, "show".to_string(), 1),
-                    params: vec![],
-                    body: vec![],
-                    env_location: Cell::new(None),
-                },
-                Stmt::ExpressionStmt {
-                    expr: Expr::Call {
-                        callee: Box::new(Expr::Variable {
-                            name: "show".to_string(),
-                            env_location: Cell::new(None),
-                        }),
-                        paren: TokenType::RightParen,
-                        arguments: vec![],
-                    },
-                },
-            ],
-        }];
+        let ast = parse("{ fun show() {} show(); }");
 
         let mut resolver = Resolver::default();
-        resolver.resolve(&statements).unwrap();
+        let root = ast.statements.last().unwrap().clone();
+        resolver.resolve_statement(&root, &ast).unwrap();
 
-        let block_statements = match &statements[0] {
-            Stmt::Block { statements } => statements,
-            _ => unreachable!(),
+        let Stmt::Block { statements } = &root else {
+            unreachable!()
+        };
+        let Stmt::ExpressionStmt { expr } = ast.get_statement(statements[1]).unwrap() else {
+            unreachable!()
+        };
+        let Expr::Call { callee, .. } = ast.get_expression(*expr).unwrap() else {
+            unreachable!()
+        };
+        let Expr::Variable { env_location, .. } = ast.get_expression(*callee).unwrap() else {
+            unreachable!()
         };
 
-        let callee_scope_depth = match &block_statements[1] {
-            Stmt::ExpressionStmt {
-                expr:
-                    Expr::Call {
-                        callee,
-                        arguments: _,
-                        paren: _,
-                    },
-            } => match callee.as_ref() {
-                Expr::Variable { env_location, .. } => env_location,
-                _ => unreachable!(),
-            },
-            _ => unreachable!(),
-        };
-
-        assert_eq!(callee_scope_depth.get(), Some((0, 0)));
+        assert_eq!(env_location.get(), Some((0, 0)));
     }
 
     #[test]
     fn resolve_propagates_errors_from_function_body() {
-        let statements = vec![Stmt::Function {
-            name: Token::new(TokenType::Identifier, "show".to_string(), 1),
-            params: vec![],
-            body: vec![Stmt::Var {
-                name: "a".to_string(),
-                initializer: Some(Expr::Variable {
-                    name: "a".to_string(),
-                    env_location: Cell::new(None),
-                }),
-                env_location: Cell::new(None),
-            }],
-            env_location: Cell::new(None),
-        }];
+        let ast = parse("fun show() { var a = a; }");
 
         let mut resolver = Resolver::default();
-        let error = resolver.resolve(&statements).unwrap_err();
+        let root = ast.statements.last().unwrap().clone();
+        let error = resolver.resolve_statement(&root, &ast).unwrap_err();
 
         assert_eq!(
             error.to_string(),
@@ -598,23 +480,11 @@ mod tests {
 
     #[test]
     fn resolve_rejects_duplicate_local_declarations() {
-        let statements = vec![Stmt::Block {
-            statements: vec![
-                Stmt::Var {
-                    name: "a".to_string(),
-                    initializer: None,
-                    env_location: Cell::new(None),
-                },
-                Stmt::Var {
-                    name: "a".to_string(),
-                    initializer: None,
-                    env_location: Cell::new(None),
-                },
-            ],
-        }];
+        let ast = parse("{ var a; var a; }");
 
         let mut resolver = Resolver::default();
-        let error = resolver.resolve(&statements).unwrap_err();
+        let root = ast.statements.last().unwrap().clone();
+        let error = resolver.resolve_statement(&root, &ast).unwrap_err();
 
         assert_eq!(
             error.to_string(),
@@ -624,34 +494,21 @@ mod tests {
 
     #[test]
     fn resolve_rejects_top_level_return() {
-        let statements = vec![Stmt::Return {
-            keyword: Token::new(TokenType::Return, "return".to_string(), 1),
-            value: Some(Expr::Literal {
-                value: Literal::Str("value".to_string()),
-            }),
-        }];
+        let ast = parse("return \"value\";");
 
         let mut resolver = Resolver::default();
-        let error = resolver.resolve(&statements).unwrap_err();
+        let root = ast.statements.last().unwrap().clone();
+        let error = resolver.resolve_statement(&root, &ast).unwrap_err();
 
         assert_eq!(error.to_string(), "Can't return from top-level code.");
     }
 
     #[test]
     fn resolve_allows_return_inside_function() {
-        let statements = vec![Stmt::Function {
-            name: Token::new(TokenType::Identifier, "show".to_string(), 1),
-            params: vec![],
-            body: vec![Stmt::Return {
-                keyword: Token::new(TokenType::Return, "return".to_string(), 1),
-                value: Some(Expr::Literal {
-                    value: Literal::Float(1.0),
-                }),
-            }],
-            env_location: Cell::new(None),
-        }];
+        let ast = parse("fun show() { return 1; }");
 
         let mut resolver = Resolver::default();
-        resolver.resolve(&statements).unwrap();
+        let root = ast.statements.last().unwrap().clone();
+        resolver.resolve_statement(&root, &ast).unwrap();
     }
 }
