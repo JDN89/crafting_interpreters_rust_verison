@@ -352,6 +352,34 @@ Error: Can't return from top-level code.
 
 ```
 
+### changing Lexeme String refs
+the lexemes where a String changing to Range (i32,i32)
+
+```bash
+crafting_interpreters_rust_verison/rlox master  ❯ hyperfine --warmup 3 'target/release/rlox fib.lox'
+Benchmark 1: target/release/rlox fib.lox
+  Time (mean ± σ):      3.709 s ±  0.060 s    [User: 3.695 s, System: 0.001 s]
+  Range (min … max):    3.636 s …  3.826 s    10 runs
+```
+
+I was starting to implement pub struct Lexeme {u32,u32} to replace String. But Now I think it's better to just use a String interner
+
+pub struct StringId(u32)
+
+pub struct Interner{
+strings :Vec<String>
+ids : FxHasmap<String, StringId>
+}
+
+StringId is the length of the Interner, wcich grows each time you push to the strings array. stringId is the index into the strings array
+
+flow:
+
+check stringId present in strings
+if not push to strings, add to ids id and String
+
+resolve is index into strings array
+
 ### Not all CPU operations are equal
 ![[Pasted image 20260827220447.png]]
 
