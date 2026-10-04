@@ -1,15 +1,47 @@
 use core::fmt;
 
+use rustc_hash::FxHashMap;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StringId(u32);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Interner {
+    strings: Vec<String>,
+    ids: FxHashMap<String, StringId>,
+}
+
+impl Interner {
+    pub fn intern(&mut self, str: &str) -> StringId {
+        if let Some(&id) = self.ids.get(str) {
+            return id;
+        };
+        let id = StringId(self.strings.len() as u32);
+        let owned_string = str.to_owned();
+
+        self.strings.push(owned_string.clone());
+        self.ids.insert(owned_string, id);
+
+        id
+    }
+
+    // TODO do we return a ref of we have to manipulate and own the string? Analyze later
+    pub fn get_string(&mut self, id: StringId) -> &str {
+        let value = &self.strings[id.0 as usize];
+        value
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
     pub ttype: TokenType,
-    pub lexeme: String,
+    pub lexeme: StringId,
     pub line: u32,
 }
 
 impl Token {
     #[must_use]
-    pub const fn new(ttype: TokenType, lexeme: String, line: u32) -> Self {
+    pub const fn new(ttype: TokenType, lexeme: StringId, line: u32) -> Self {
         Self {
             ttype,
             lexeme,
@@ -23,7 +55,7 @@ impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Token {{ type: {:?}, lexeme: '{}',  line: {} }}",
+            "Token {{ type: {:?}, lexeme: '{:?}',  line: {} }}",
             self.ttype, self.lexeme, self.line
         )
     }
